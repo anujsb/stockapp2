@@ -101,10 +101,10 @@ export default function HomePage() {
             <Link href="#how-it-works" className="text-gray-300 hover:text-white transition-colors">
               How it Works
             </Link>
-            <Link href="/sign-in" className="text-gray-300 hover:text-white transition-colors">
+            <Link href="/dashboard" className="text-gray-300 hover:text-white transition-colors">
               Sign In
             </Link>
-            <Link href="/sign-up" className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105">
+            <Link href="/dashboard" className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105">
               Get Started
             </Link>
           </div>
@@ -128,7 +128,7 @@ export default function HomePage() {
             Upload your portfolio, get AI-powered insights, track real-time news, and make informed investment decisions with our comprehensive stock research platform.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/sign-up" className="group relative inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-4 text-lg font-medium text-white hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
+            <Link href="/dashboard" className="group relative inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-4 text-lg font-medium text-white hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
               Start Free Trial
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
