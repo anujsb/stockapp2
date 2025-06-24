@@ -1,4 +1,3 @@
-
 // // src/app/api/stocks/[symbol]/route.ts
 // import { NextRequest, NextResponse } from 'next/server';
 // import { db } from '@/lib/db';
@@ -113,7 +112,10 @@ interface RouteParams {
   };
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { symbol: string } }
+) {
   const { symbol } = params;
 
   try {

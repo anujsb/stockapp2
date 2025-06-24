@@ -147,7 +147,6 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen overflow-hidden">
       <SideBar />
-      
       <div className="flex-1 overflow-y-auto min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}

@@ -6,6 +6,7 @@ import { IconHome2, IconChartBar, IconEye, IconNews, IconPlus } from "@tabler/ic
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { SignedIn, UserButton } from "@clerk/nextjs";
 
 export function SideBar() {
   const links = [
@@ -19,11 +20,11 @@ export function SideBar() {
       href: "/portfolio",
       icon: <IconChartBar className="h-5 w-5 flex-shrink-0" aria-hidden="true" />,
     },
-    {
-      label: "Add Stock",
-      href: "/portfolio",
-      icon: <IconPlus className="h-5 w-5 flex-shrink-0" aria-hidden="true" />,
-    },
+    // {
+    //   label: "Add Stock",
+    //   href: "/portfolio",
+    //   icon: <IconPlus className="h-5 w-5 flex-shrink-0" aria-hidden="true" />,
+    // },
     {
       label: "Watchlist",
       href: "/watchlist",
@@ -32,6 +33,11 @@ export function SideBar() {
     {
       label: "Market News",
       href: "/news",
+      icon: <IconNews className="h-5 w-5 flex-shrink-0" aria-hidden="true" />,
+    },
+    {
+      label: "Recommendations",
+      href: "/recommendations",
       icon: <IconNews className="h-5 w-5 flex-shrink-0" aria-hidden="true" />,
     },
   ];
@@ -50,11 +56,10 @@ export function SideBar() {
                 <SidebarLink
                   key={idx}
                   link={link}
-                  className={`${
-                    pathname === link.href
+                  className={`${pathname === link.href
                       ? "bg-secondary px-1 rounded-lg"
                       : "bg-transparent px-1 rounded-lg"
-                  }`}
+                    }`}
                   aria-current={pathname === link.href ? "page" : undefined}
                 />
               ))}
@@ -67,7 +72,7 @@ export function SideBar() {
                 href: "https://21bubbles.com/",
                 icon: (
                   <Image
-                    src="/21bubbles_logo.jpeg"
+                    src="/favicon.ico"
                     className="h-7 w-7 flex-shrink-0 rounded-full"
                     width={50}
                     height={50}
@@ -78,6 +83,12 @@ export function SideBar() {
               }}
               aria-label="Visit 21bubbles website"
             />
+            <div className="">
+              <SignedIn>
+                <UserButton />
+                {/* Your profile  */}
+              </SignedIn>
+            </div>
           </div>
         </SidebarBody>
       </Sidebar>
