@@ -473,13 +473,14 @@
 //   );
 // }
 
-// src/app/page.tsx
+// src/app/portfolio/page.tsx
 'use client';
 
 import { useState } from 'react';
 import { Plus, PieChart, TrendingUp } from 'lucide-react';
 import AddStockModal from '@/components/AddStockModal';
 import PortfolioTable from '@/components/PortfolioTable';
+import { SideBar } from '@/components/SideBar';
 
 export default function PortfolioPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -490,42 +491,46 @@ export default function PortfolioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <PieChart className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Stock Portfolio</h1>
+    <div>
+      <SideBar />
+
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center gap-3">
+                <PieChart className="h-8 w-8 text-blue-600" />
+                <h1 className="text-2xl font-bold text-gray-900">Stock Portfolio</h1>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Add Stock
+              </button>
             </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              Add Stock
-            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">My Portfolio</h2>
-          <p className="text-gray-600">Track your stock investments and performance</p>
-        </div>
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">My Portfolio</h2>
+            <p className="text-gray-600">Track your stock investments and performance</p>
+          </div>
 
-        <PortfolioTable refreshTrigger={refreshTrigger} />
-      </main>
+          <PortfolioTable refreshTrigger={refreshTrigger} />
+        </main>
 
-      {/* Add Stock Modal */}
-      <AddStockModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onStockAdded={handleStockAdded}
-      />
+        {/* Add Stock Modal */}
+        <AddStockModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onStockAdded={handleStockAdded}
+        />
+      </div>
     </div>
   );
 }

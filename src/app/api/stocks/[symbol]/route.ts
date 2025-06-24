@@ -1,4 +1,105 @@
 
+// // src/app/api/stocks/[symbol]/route.ts
+// import { NextRequest, NextResponse } from 'next/server';
+// import { db } from '@/lib/db';
+// import { stocks } from '@/lib/db/schema';
+// import { eq } from 'drizzle-orm';
+// import { getStockQuote, getStockOverview } from '@/lib/alpha-vantage';
+
+// interface RouteParams {
+//   params: {
+//     symbol: string;
+//   };
+// }
+
+// export async function GET(request: NextRequest, { params }: RouteParams) {
+//   const { symbol } = params;
+
+//   try {
+//     // First check if stock exists in database
+//     let stock = await db.select().from(stocks).where(eq(stocks.symbol, symbol.toUpperCase())).limit(1);
+
+//     if (stock.length === 0) {
+//       // Fetch from Alpha Vantage and store in database
+//       const [quote, overview] = await Promise.all([
+//         getStockQuote(symbol),
+//         getStockOverview(symbol)
+//       ]);
+
+//       if (!quote) {
+//         return NextResponse.json({ error: 'Stock not found' }, { status: 404 });
+//       }
+
+//       const stockData = {
+//         symbol: symbol.toUpperCase(),
+//         name: overview?.name || quote.symbol,
+//         currentPrice: quote.price,
+//         previousClose: quote.previousClose,
+//         dayChange: quote.change,
+//         dayChangePercent: quote.changePercent,
+//         volume: quote.volume ? parseInt(quote.volume) : null,
+//         high52Week: overview?.high52Week || quote.high52Week,
+//         low52Week: overview?.low52Week || quote.low52Week,
+//         peRatio: overview?.peRatio,
+//         dividendYield: overview?.dividendYield,
+//         sector: overview?.sector,
+//         industry: overview?.industry,
+//         exchange: overview?.exchange,
+//         marketCap: overview?.marketCap ? parseInt(overview.marketCap) : null,
+//         currency: 'USD'
+//       };
+
+//       const [insertedStock] = await db.insert(stocks).values(stockData).returning();
+//       return NextResponse.json(insertedStock);
+//     } else {
+//       // Update existing stock with fresh data
+//       const [quote, overview] = await Promise.all([
+//         getStockQuote(symbol),
+//         getStockOverview(symbol)
+//       ]);
+
+//       if (quote) {
+//         const updateData = {
+//           currentPrice: quote.price,
+//           previousClose: quote.previousClose,
+//           dayChange: quote.change,
+//           dayChangePercent: quote.changePercent,
+//           volume: quote.volume ? parseInt(quote.volume) : null,
+//           lastUpdated: new Date()
+//         };
+
+//         if (overview) {
+//           Object.assign(updateData, {
+//             name: overview.name,
+//             sector: overview.sector,
+//             industry: overview.industry,
+//             peRatio: overview.peRatio,
+//             dividendYield: overview.dividendYield,
+//             high52Week: overview.high52Week,
+//             low52Week: overview.low52Week,
+//             marketCap: overview.marketCap ? parseInt(overview.marketCap) : null
+//           });
+//         }
+
+//         const [updatedStock] = await db
+//           .update(stocks)
+//           .set(updateData)
+//           .where(eq(stocks.id, stock[0].id))
+//           .returning();
+
+//         return NextResponse.json(updatedStock);
+//       }
+
+//       return NextResponse.json(stock[0]);
+//     }
+//   } catch (error) {
+//     console.error('Error fetching stock:', error);
+//     return NextResponse.json({ error: 'Failed to fetch stock data' }, { status: 500 });
+//   }
+// }
+
+
+
 // src/app/api/stocks/[symbol]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -16,23 +117,30 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { symbol } = params;
 
   try {
+    console.log(`Fetching stock data for symbol: ${symbol}`);
+    
     // First check if stock exists in database
     let stock = await db.select().from(stocks).where(eq(stocks.symbol, symbol.toUpperCase())).limit(1);
 
     if (stock.length === 0) {
-      // Fetch from Alpha Vantage and store in database
+      console.log(`Stock ${symbol} not found in database, fetching from APIs...`);
+      
+      // Fetch from APIs with fallback and store in database
       const [quote, overview] = await Promise.all([
         getStockQuote(symbol),
         getStockOverview(symbol)
       ]);
 
       if (!quote) {
+        console.log(`No quote data available for ${symbol}`);
         return NextResponse.json({ error: 'Stock not found' }, { status: 404 });
       }
 
+      console.log(`Successfully fetched data for ${symbol}, storing in database...`);
+
       const stockData = {
         symbol: symbol.toUpperCase(),
-        name: overview?.name || quote.symbol,
+        name: overview?.name || quote.name || quote.symbol,
         currentPrice: quote.price,
         previousClose: quote.previousClose,
         dayChange: quote.change,
@@ -40,18 +148,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         volume: quote.volume ? parseInt(quote.volume) : null,
         high52Week: overview?.high52Week || quote.high52Week,
         low52Week: overview?.low52Week || quote.low52Week,
-        peRatio: overview?.peRatio,
+        peRatio: overview?.peRatio || quote.peRatio,
         dividendYield: overview?.dividendYield,
         sector: overview?.sector,
         industry: overview?.industry,
         exchange: overview?.exchange,
-        marketCap: overview?.marketCap ? parseInt(overview.marketCap) : null,
+        marketCap: overview?.marketCap ? parseInt(overview.marketCap) : (quote.marketCap ? parseInt(quote.marketCap) : null),
         currency: 'USD'
       };
 
-      const [insertedStock] = await db.insert(stocks).values(stockData).returning();
-      return NextResponse.json(insertedStock);
+      try {
+        const [insertedStock] = await db.insert(stocks).values(stockData).returning();
+        console.log(`Successfully stored ${symbol} in database`);
+        return NextResponse.json(insertedStock);
+      } catch (dbError) {
+        console.error(`Database insert error for ${symbol}:`, dbError);
+        // Return the stock data even if database insert fails
+        return NextResponse.json({
+          ...stockData,
+          id: Date.now(), // Temporary ID
+          createdAt: new Date(),
+          lastUpdated: new Date()
+        });
+      }
     } else {
+      console.log(`Stock ${symbol} found in database, updating with fresh data...`);
+      
       // Update existing stock with fresh data
       const [quote, overview] = await Promise.all([
         getStockQuote(symbol),
@@ -59,6 +181,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       ]);
 
       if (quote) {
+        console.log(`Got fresh data for ${symbol}, updating database...`);
+        
         const updateData = {
           currentPrice: quote.price,
           previousClose: quote.previousClose,
@@ -81,19 +205,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           });
         }
 
-        const [updatedStock] = await db
-          .update(stocks)
-          .set(updateData)
-          .where(eq(stocks.id, stock[0].id))
-          .returning();
+        try {
+          const [updatedStock] = await db
+            .update(stocks)
+            .set(updateData)
+            .where(eq(stocks.id, stock[0].id))
+            .returning();
 
-        return NextResponse.json(updatedStock);
+          console.log(`Successfully updated ${symbol} in database`);
+          return NextResponse.json(updatedStock);
+        } catch (dbError) {
+          console.error(`Database update error for ${symbol}:`, dbError);
+          // Return the existing stock data if update fails
+          return NextResponse.json(stock[0]);
+        }
+      } else {
+        console.log(`No fresh data available for ${symbol}, returning cached data`);
+        return NextResponse.json(stock[0]);
       }
-
-      return NextResponse.json(stock[0]);
     }
   } catch (error) {
-    console.error('Error fetching stock:', error);
+    console.error(`Error fetching stock ${symbol}:`, error);
     return NextResponse.json({ error: 'Failed to fetch stock data' }, { status: 500 });
   }
 }
