@@ -476,7 +476,7 @@
 // src/app/portfolio/page.tsx
 'use client';
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus, PieChart, Upload, TrendingUp, TrendingDown, BarChart3, FileText, Brain, Target, AlertTriangle } from 'lucide-react';
 import AddStockModal from '@/components/AddStockModal';
 import PortfolioTable from '@/components/PortfolioTable';
@@ -490,12 +490,38 @@ import AIAnalysis from '@/components/stock-ai-analysis/AIAnalysis';
 import Financials from '@/components/stock-financials/Financials';
 import Technicals from '@/components/stock-technicals/Technicals';
 
+interface PortfolioStock {
+  id: number;
+  symbol: string;
+  name: string;
+  sector?: string;
+  industry?: string;
+  currentPrice: number;
+  avgPurchasePrice: number;
+  quantity: number;
+  [key: string]: any;
+}
+
+function mapPortfolioItemsToStocks(items: any[]): PortfolioStock[] {
+  return items.map((item) => ({
+    id: item.id,
+    symbol: item.stock.symbol,
+    name: item.stock.name,
+    sector: item.stock.sector,
+    industry: item.stock.industry,
+    currentPrice: item.stock.current_price,
+    avgPurchasePrice: item.avg_purchase_price,
+    quantity: item.quantity,
+    // add other fields as needed
+  }));
+}
+
 export default function PortfolioPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
-  const [selectedStock, setSelectedStock] = useState(null);
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [portfolio, setPortfolio] = useState([]);
+  const [portfolio, setPortfolio] = useState<PortfolioStock[]>([]);
   const [portfolioSummary, setPortfolioSummary] = useState({
     totalPortfolioValue: 0,
     totalInvested: 0,
@@ -507,23 +533,76 @@ export default function PortfolioPage() {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleDataUpdate = useCallback((portfolioData, summary) => {
-    setPortfolio(portfolioData);
-    setPortfolioSummary(summary);
-  }, []);
+  interface PortfolioStock {
+    id: number;
+    symbol: string;
+    name: string;
+    sector?: string;
+    industry?: string;
+    currentPrice: number;
+    avgPurchasePrice: number;
+    quantity: number;
+    [key: string]: any;
+  }
 
-  const handleStockClick = (stock) => {
+  interface PortfolioSummary {
+    totalPortfolioValue: number;
+    totalInvested: number;
+    totalGainLoss: number;
+    totalGainLossPercent: number;
+  }
+
+    interface Stock {
+    id: number;
+    symbol: string;
+    name: string;
+    sector?: string;
+    industry?: string;
+    currentPrice: number;
+    avgPurchasePrice: number;
+    quantity: number;
+    [key: string]: any;
+  }
+
+    interface FormatCurrencyOptions {
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+  }
+
+
+
+  type HandleDataUpdate = (portfolioData: PortfolioStock[], summary: { totalPortfolioValue: number; totalInvested: number; totalGainLoss: number; totalGainLossPercent: number; }) => void;
+
+  const handleDataUpdate = useCallback(
+    (portfolioData: any[], summary: PortfolioSummary) => {
+      setPortfolio(mapPortfolioItemsToStocks(portfolioData));
+      setPortfolioSummary(summary);
+    },
+    []
+  );
+
+
+  const handleStockClick = (stock: Stock) => {
     setSelectedStock(stock);
   };
 
-  const formatCurrency = (amount) => {
+
+  const formatCurrency = (amount: number, options?: FormatCurrencyOptions): string => {
     return new Intl.NumberFormat('en-IN', {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
+      ...options,
     }).format(amount);
   };
 
-  const calculateGainLoss = (stock) => {
+  interface GainLossResult {
+    gainLoss: number;
+    gainLossPercent: number;
+    currentValue: number;
+    investedValue: number;
+  }
+
+  const calculateGainLoss = (stock: Stock): GainLossResult => {
     const currentValue = stock.currentPrice * stock.quantity;
     const investedValue = stock.avgPurchasePrice * stock.quantity;
     const gainLoss = currentValue - investedValue;
@@ -537,16 +616,26 @@ export default function PortfolioPage() {
     };
   };
 
-  const getRecommendationColor = (rec) => {
-    switch (rec) {
-      case 'BUY': return 'bg-green-100 text-green-800 border-green-200';
-      case 'SELL': return 'bg-red-100 text-red-800 border-red-200';
-      case 'HOLD': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  interface RecommendationColorMap {
+    [key: string]: string;
+  }
+
+  type Recommendation = 'BUY' | 'SELL' | 'HOLD' | string;
+
+  const getRecommendationColor = (rec: Recommendation): string => {
+    const colorMap: RecommendationColorMap = {
+      BUY: 'bg-green-100 text-green-800 border-green-200',
+      SELL: 'bg-red-100 text-red-800 border-red-200',
+      HOLD: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    };
+    return colorMap[rec] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const getRecommendationIcon = (rec) => {
+  interface RecommendationIconProps {
+    rec: Recommendation;
+  }
+
+  const getRecommendationIcon = (rec: Recommendation): React.ReactElement => {
     switch (rec) {
       case 'BUY': return <TrendingUp className="h-4 w-4" />;
       case 'SELL': return <TrendingDown className="h-4 w-4" />;
