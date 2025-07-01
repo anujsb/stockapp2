@@ -1,4 +1,4 @@
-// src/app/portfolio/page.tsx
+// src/app/testui1/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -7,6 +7,13 @@ import AddStockModal from '@/components/AddStockModal';
 import PortfolioTable from '@/components/PortfolioTable';
 import { SideBar } from '@/components/SideBar';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import Dashboard from '@/components/stock-dashboard/Dashboard';
+import Chart from '@/components/stock-chart/Chart';
+import AIAnalysis from '@/components/stock-ai-analysis/AIAnalysis';
+import Financials from '@/components/stock-financials/Financials';
+import Technicals from '@/components/stock-technicals/Technicals';
 
 // 1. Define a Stock type
 type Stock = {
@@ -109,7 +116,7 @@ export default function PortfolioPage() {
     const investedValue = stock.avgPurchasePrice * stock.quantity;
     const gainLoss = currentValue - investedValue;
     const gainLossPercent = ((gainLoss / investedValue) * 100);
-    
+
     return {
       gainLoss,
       gainLossPercent,
@@ -119,7 +126,7 @@ export default function PortfolioPage() {
   };
 
   const getRecommendationColor = (rec: string) => {
-    switch(rec) {
+    switch (rec) {
       case 'BUY': return 'bg-green-100 text-green-800 border-green-200';
       case 'SELL': return 'bg-red-100 text-red-800 border-red-200';
       case 'HOLD': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
@@ -128,7 +135,7 @@ export default function PortfolioPage() {
   };
 
   const getRecommendationIcon = (rec: string) => {
-    switch(rec) {
+    switch (rec) {
       case 'BUY': return <TrendingUp className="h-4 w-4" />;
       case 'SELL': return <TrendingDown className="h-4 w-4" />;
       case 'HOLD': return <Target className="h-4 w-4" />;
@@ -215,8 +222,8 @@ export default function PortfolioPage() {
                   </p>
                 </div>
                 <div className={`p-3 rounded-full ${mockPortfolioData.totalGainLoss >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                  {mockPortfolioData.totalGainLoss >= 0 ? 
-                    <TrendingUp className="h-6 w-6 text-green-600" /> : 
+                  {mockPortfolioData.totalGainLoss >= 0 ?
+                    <TrendingUp className="h-6 w-6 text-green-600" /> :
                     <TrendingDown className="h-6 w-6 text-red-600" />
                   }
                 </div>
@@ -261,10 +268,10 @@ export default function PortfolioPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {mockPortfolioData.stocks.map((stock) => {
                     const { gainLoss, gainLossPercent, currentValue } = calculateGainLoss(stock);
-                    
+
                     return (
-                      <tr 
-                        key={stock.id} 
+                      <tr
+                        key={stock.id}
                         className="hover:bg-gray-50 cursor-pointer transition-colors"
                         onClick={() => setSelectedStock(stock)}
                       >
@@ -285,9 +292,8 @@ export default function PortfolioPage() {
                           <div className="text-sm text-gray-900">
                             {formatCurrency(stock.currentPrice)}
                           </div>
-                          <div className={`text-xs flex items-center gap-1 ${
-                            stock.dayChange >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                          <div className={`text-xs flex items-center gap-1 ${stock.dayChange >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
                             {stock.dayChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             {Math.abs(stock.dayChange).toFixed(2)} ({Math.abs(stock.dayChangePercent).toFixed(2)}%)
                           </div>
@@ -296,15 +302,13 @@ export default function PortfolioPage() {
                           {formatCurrency(currentValue)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm font-medium flex items-center gap-1 ${
-                            gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                          <div className={`text-sm font-medium flex items-center gap-1 ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
                             {gainLoss >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                             {formatCurrency(Math.abs(gainLoss))}
                           </div>
-                          <div className={`text-xs ${
-                            gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                          <div className={`text-xs ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
                             ({gainLossPercent.toFixed(2)}%)
                           </div>
                         </td>
@@ -326,6 +330,7 @@ export default function PortfolioPage() {
           {selectedStock && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header (unchanged) */}
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex justify-between items-start">
                     <div>
@@ -344,139 +349,53 @@ export default function PortfolioPage() {
                   </div>
                 </div>
 
-                <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left Column - Chart and Key Metrics */}
-                  <div className="space-y-6">
-                    {/* TradingView Chart */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Price Chart</h3>
-                      <div className="h-64 bg-white rounded border flex items-center justify-center">
-                        <p className="text-gray-500">TradingView Chart for {selectedStock.symbol}</p>
-                        {/* TradingView widget will be integrated here */}
-                      </div>
-                    </div>
+                {/* Tabbed Content */}
+                <Tabs defaultValue="dashboard" className="w-full">
+                  <TabsList className="w-full">
+                  {/* <TabsList className="grid w-full grid-cols-5 px-6 py-2 border-b border-gray-200"> */}
+                    <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                    <TabsTrigger value="chart">Chart</TabsTrigger>
+                    <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
+                    <TabsTrigger value="financials">Financials</TabsTrigger>
+                    <TabsTrigger value="technicals">Technicals</TabsTrigger>
+                  </TabsList>
 
-                    {/* Key Metrics */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Metrics</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-600">Market Cap</p>
-                          <p className="text-lg font-semibold text-gray-900">{selectedStock.marketCap}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">P/E Ratio</p>
-                          <p className="text-lg font-semibold text-gray-900">{selectedStock.pe}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Beta</p>
-                          <p className="text-lg font-semibold text-gray-900">{selectedStock.beta}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Volume</p>
-                          <p className="text-lg font-semibold text-gray-900">{selectedStock.volume}</p>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Dashboard Tab */}
+                  <TabsContent value="dashboard" className="p-6">
+                    <Dashboard 
+                      stock={selectedStock} 
+                      formatCurrency={formatCurrency} 
+                      calculateGainLoss={calculateGainLoss} 
+                    />
+                  </TabsContent>
 
-                    {/* Your Position */}
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Position</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-600">Shares Owned</p>
-                          <p className="text-lg font-semibold text-gray-900">{selectedStock.quantity}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Average Cost</p>
-                          <p className="text-lg font-semibold text-gray-900">{formatCurrency(selectedStock.avgPurchasePrice)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Current Value</p>
-                          <p className="text-lg font-semibold text-gray-900">{formatCurrency(calculateGainLoss(selectedStock).currentValue)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Gain/Loss</p>
-                          <p className={`text-lg font-semibold ${calculateGainLoss(selectedStock).gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(Math.abs(calculateGainLoss(selectedStock).gainLoss))} ({calculateGainLoss(selectedStock).gainLossPercent.toFixed(2)}%)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Chart Tab */}
+                  <TabsContent value="chart" className="p-6">
+                    <Chart stock={selectedStock} />
+                  </TabsContent>
 
-                  {/* Right Column - AI Analysis */}
-                  <div className="space-y-6">
-                    {/* AI Recommendation */}
-                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-200">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Brain className="h-6 w-6 text-purple-600" />
-                        <h3 className="text-lg font-semibold text-gray-900">AI Recommendation</h3>
-                      </div>
-                      <div className="mb-4">
-                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border ${getRecommendationColor(selectedStock.recommendation)}`}>
-                          {getRecommendationIcon(selectedStock.recommendation)}
-                          {selectedStock.recommendation}
-                        </span>
-                      </div>
-                      <div className="space-y-3">
-                        <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Summary</h4>
-                          <p className="text-sm text-gray-700">{selectedStock.aiSummary}</p>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Reasoning</h4>
-                          <p className="text-sm text-gray-700">{selectedStock.aiReason}</p>
-                        </div>
-                      </div>
-                    </div>
+                  {/* AI Analysis Tab */}
+                  <TabsContent value="analysis" className="p-6">
+                    <AIAnalysis stock={selectedStock} />
+                  </TabsContent>
 
-                    {/* Additional Analysis */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Analysis</h3>
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">RSI (14)</span>
-                          <span className="text-sm font-medium text-gray-900">65.2</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">MACD</span>
-                          <span className="text-sm font-medium text-green-600">Bullish</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">50-Day MA</span>
-                          <span className="text-sm font-medium text-gray-900">{formatCurrency(selectedStock.currentPrice * 0.98)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">200-Day MA</span>
-                          <span className="text-sm font-medium text-gray-900">{formatCurrency(selectedStock.currentPrice * 0.95)}</span>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Financials Tab */}
+                  <TabsContent value="financials" className="p-6">
+                    <Financials stock={selectedStock} />
+                  </TabsContent>
 
-                    {/* News & Updates */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent News</h3>
-                      <div className="space-y-3">
-                        <div className="border-l-4 border-blue-500 pl-3">
-                          <p className="text-sm font-medium text-gray-900">Q3 Earnings Beat Expectations</p>
-                          <p className="text-xs text-gray-500">2 hours ago</p>
-                        </div>
-                        <div className="border-l-4 border-green-500 pl-3">
-                          <p className="text-sm font-medium text-gray-900">New Product Launch Announced</p>
-                          <p className="text-xs text-gray-500">1 day ago</p>
-                        </div>
-                        <div className="border-l-4 border-yellow-500 pl-3">
-                          <p className="text-sm font-medium text-gray-900">Analyst Upgrades Rating</p>
-                          <p className="text-xs text-gray-500">3 days ago</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  {/* Technicals Tab */}
+                  <TabsContent value="technicals" className="p-6">
+                    <Technicals 
+                      stock={selectedStock} 
+                      formatCurrency={formatCurrency} 
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           )}
+
 
           {/* CSV Upload Modal */}
           {isCSVModalOpen && (
@@ -493,7 +412,7 @@ export default function PortfolioPage() {
                     </svg>
                   </Button>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                     <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -513,7 +432,7 @@ export default function PortfolioPage() {
                       Select File
                     </label>
                   </div>
-                  
+
                   <div className="text-xs text-gray-500">
                     <p className="mb-2">CSV should contain columns:</p>
                     <ul className="list-disc list-inside space-y-1">
@@ -523,7 +442,7 @@ export default function PortfolioPage() {
                       <li>Notes (optional)</li>
                     </ul>
                   </div>
-                  
+
                   <div className="flex gap-3 pt-4">
                     <button
                       onClick={() => setIsCSVModalOpen(false)}
