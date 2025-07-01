@@ -27,9 +27,11 @@ interface PortfolioItem {
 
 interface PortfolioTableProps {
   refreshTrigger: number;
+  onDataUpdate?: (portfolio: PortfolioItem[], summary: { totalPortfolioValue: number; totalInvested: number; totalGainLoss: number; totalGainLossPercent: number; }) => void;
+  onStockClick?: (stock: any) => void;
 }
 
-export default function PortfolioTable({ refreshTrigger }: PortfolioTableProps) {
+export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockClick }: PortfolioTableProps) {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,28 +46,6 @@ export default function PortfolioTable({ refreshTrigger }: PortfolioTableProps) 
       console.error('Error fetching portfolio:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPortfolio();
-  }, [refreshTrigger]);
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to remove this stock from your portfolio?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/portfolio?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setPortfolio(portfolio.filter(item => item.id !== id));
-      }
-    } catch (error) {
-      console.error('Error deleting portfolio item:', error);
     }
   };
 
@@ -88,9 +68,9 @@ export default function PortfolioTable({ refreshTrigger }: PortfolioTableProps) 
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount);
   };
 
@@ -106,6 +86,40 @@ export default function PortfolioTable({ refreshTrigger }: PortfolioTableProps) 
 
   const totalGainLoss = totalPortfolioValue - totalInvested;
   const totalGainLossPercent = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
+
+  useEffect(() => {
+    fetchPortfolio();
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    if (onDataUpdate && portfolio.length >= 0) {
+      const summary = {
+        totalPortfolioValue,
+        totalInvested,
+        totalGainLoss,
+        totalGainLossPercent
+      };
+      onDataUpdate(portfolio, summary);
+    }
+  }, [portfolio, totalPortfolioValue, totalInvested, totalGainLoss, totalGainLossPercent]);
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to remove this stock from your portfolio?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/portfolio?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setPortfolio(portfolio.filter(item => item.id !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting portfolio item:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -187,7 +201,30 @@ export default function PortfolioTable({ refreshTrigger }: PortfolioTableProps) 
                 const dayChangePercent = parseFloat(item.stock.dayChangePercent);
                 
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={item.id} 
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => onStockClick && onStockClick({
+                      id: item.stock.id,
+                      symbol: item.stock.symbol,
+                      name: item.stock.name,
+                      quantity: parseFloat(item.quantity),
+                      avgPurchasePrice: parseFloat(item.avgPurchasePrice),
+                      currentPrice: parseFloat(item.stock.currentPrice),
+                      dayChange: parseFloat(item.stock.dayChange),
+                      dayChangePercent: parseFloat(item.stock.dayChangePercent),
+                      sector: item.stock.sector,
+                      industry: item.stock.industry || '',
+                      marketCap: '0',
+                      pe: 0,
+                      dividend: 0,
+                      beta: 0,
+                      volume: '0',
+                      recommendation: 'HOLD',
+                      aiSummary: '',
+                      aiReason: ''
+                    })}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="font-medium text-gray-900">{item.stock.symbol}</div>
@@ -232,7 +269,10 @@ export default function PortfolioTable({ refreshTrigger }: PortfolioTableProps) 
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item.id);
+                        }}
                         className="text-red-600 hover:text-red-900 transition-colors"
                         title="Remove from portfolio"
                       >
