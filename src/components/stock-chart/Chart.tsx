@@ -193,7 +193,6 @@ export default function Chart({ stock }: ChartProps) {
                   <SelectValue placeholder="Select comparison..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Select comparison...</SelectItem>
                   <SelectItem value="SPY">S&amp;P 500 (SPY)</SelectItem>
                   <SelectItem value="QQQ">NASDAQ 100 (QQQ)</SelectItem>
                   <SelectItem value="AAPL">Apple Inc. (AAPL)</SelectItem>
