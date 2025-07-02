@@ -489,6 +489,7 @@ import Chart from '@/components/stock-chart/Chart';
 import AIAnalysis from '@/components/stock-ai-analysis/AIAnalysis';
 import Financials from '@/components/stock-financials/Financials';
 import Technicals from '@/components/stock-technicals/Technicals';
+import NewsAndActions from '@/components/stock-news-actions/NewsAndActions';
 
 interface PortfolioStock {
   id: number;
@@ -773,6 +774,7 @@ export default function PortfolioPage() {
                     <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                     <TabsTrigger value="chart">Chart</TabsTrigger>
                     <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
+                    <TabsTrigger value="news">News & Actions</TabsTrigger>
                     <TabsTrigger value="financials">Financials</TabsTrigger>
                     <TabsTrigger value="technicals">Technicals</TabsTrigger>
                   </TabsList>
@@ -791,6 +793,10 @@ export default function PortfolioPage() {
 
                   <TabsContent value="analysis" className="p-6">
                     <AIAnalysis stock={selectedStock} />
+                  </TabsContent>
+
+                  <TabsContent value="news" className="p-6">
+                    <NewsAndActions stock={selectedStock} />
                   </TabsContent>
 
                   <TabsContent value="financials" className="p-6">
