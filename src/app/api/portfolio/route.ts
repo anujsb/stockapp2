@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
           dayChange: stocks.dayChange,
           dayChangePercent: stocks.dayChangePercent,
           sector: stocks.sector,
-          industry: stocks.industry
+          industry: stocks.industry,
+          exchange: stocks.exchange
         }
       })
       .from(userPortfolio)

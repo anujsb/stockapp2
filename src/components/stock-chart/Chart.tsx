@@ -10,6 +10,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { formatSymbolForTradingView } from '@/lib/trading-view-utils';
 
 interface ChartProps {
   stock: any;
@@ -158,7 +159,7 @@ export default function Chart({ stock }: ChartProps) {
           <div className="h-96 lg:h-[500px] bg-gray-100 rounded-lg overflow-hidden relative">
             {/* TradingView Widget Embed */}
             <iframe
-              src={`https://s.tradingview.com/widgetembed/?symbol=NASDAQ%3A${stock.symbol}&interval=${timeframe}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=${showIndicators ? 'RSI@tv-basicstudies,MACD@tv-basicstudies' : ''}&theme=light&style=${chartType === 'line' ? '2' : chartType === 'area' ? '3' : '1'}&timezone=Etc%2FUTC&withdateranges=1&hideideas=1&hidevolume=${chartType === 'line' ? '1' : '0'}&hidelegend=1`}
+              src={`https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(formatSymbolForTradingView(stock))}&interval=${timeframe}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=${showIndicators ? 'RSI@tv-basicstudies,MACD@tv-basicstudies' : ''}&theme=light&style=${chartType === 'line' ? '2' : chartType === 'area' ? '3' : '1'}&timezone=Etc%2FUTC&withdateranges=1&hideideas=1&hidevolume=${chartType === 'line' ? '1' : '0'}&hidelegend=1`}
               className="w-full h-full border-0"
               allowFullScreen
               title={`TradingView Chart for ${stock.symbol}`}

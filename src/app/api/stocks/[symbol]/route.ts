@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { stocks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getStockQuote, getStockOverview } from '@/lib/alpha-vantage';
+import { cleanSymbol, extractExchangeFromSymbol } from '@/lib/trading-view-utils';
 
 // Fixed interface - should match Next.js 15 expectations
 interface RouteContext {
@@ -19,8 +20,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     console.log(`Fetching stock data for symbol: ${symbol}`);
     
+    // Clean the symbol and extract exchange info
+    const cleanedSymbol = cleanSymbol(symbol.toUpperCase());
+    const extractedExchange = extractExchangeFromSymbol(symbol.toUpperCase());
+    
     // First check if stock exists in database
-    let stock = await db.select().from(stocks).where(eq(stocks.symbol, symbol.toUpperCase())).limit(1);
+    let stock = await db.select().from(stocks).where(eq(stocks.symbol, cleanedSymbol)).limit(1);
 
     if (stock.length === 0) {
       console.log(`Stock ${symbol} not found in database, fetching from APIs...`);
@@ -39,8 +44,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       console.log(`Successfully fetched data for ${symbol}, storing in database...`);
 
       const stockData = {
-        symbol: symbol.toUpperCase(),
-        name: overview?.name || quote.name || quote.symbol,
+        symbol: cleanedSymbol,
+        name: overview?.name || quote.name || cleanedSymbol,
         currentPrice: quote.price,
         previousClose: quote.previousClose,
         dayChange: quote.change,
@@ -52,7 +57,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         dividendYield: overview?.dividendYield,
         sector: overview?.sector,
         industry: overview?.industry,
-        exchange: overview?.exchange,
+        exchange: extractedExchange || overview?.exchange,
         marketCap: overview?.marketCap ? parseInt(overview.marketCap) : (quote.marketCap ? parseInt(quote.marketCap) : null),
         currency: 'USD'
       };

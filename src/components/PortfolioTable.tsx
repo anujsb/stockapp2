@@ -215,6 +215,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                       dayChangePercent: parseFloat(item.stock.dayChangePercent),
                       sector: item.stock.sector,
                       industry: item.stock.industry || '',
+                      exchange: item.stock.exchange || '',
                       marketCap: '0',
                       pe: 0,
                       dividend: 0,
@@ -283,6 +284,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                               dayChangePercent: parseFloat(item.stock.dayChangePercent),
                               sector: item.stock.sector,
                               industry: item.stock.industry || '',
+                              exchange: item.stock.exchange || '',
                               marketCap: '0',
                               pe: 0,
                               dividend: 0,
@@ -291,7 +293,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                               recommendation: 'HOLD',
                               aiSummary: '',
                               aiReason: ''
-                            });
+                            })
                           }}
                           className="text-blue-600 hover:text-blue-900 transition-colors"
                           title="View stock details"
