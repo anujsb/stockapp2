@@ -205,6 +205,49 @@ const ALPHA_BASE_URL = 'https://www.alphavantage.co/query';
 const YAHOO_BASE_URL = 'https://query1.finance.yahoo.com/v7/finance/quote';
 const YAHOO_SEARCH_URL = 'https://query1.finance.yahoo.com/v1/finance/search';
 
+// Utility function to clean stock symbols
+function cleanStockSymbol(symbol: string): string {
+  // Remove exchange suffixes like .BSE, .NSE, .TO, etc.
+  return symbol.split('.')[0].toUpperCase();
+}
+
+// Utility function to get the appropriate exchange for TradingView
+function getTradingViewExchange(symbol: string, exchange?: string): string {
+  const originalSymbol = symbol;
+  const cleanSymbol = cleanStockSymbol(symbol);
+  
+  // Indian stocks - check by common Indian stock symbols
+  const indianStocks = [
+    'TCS', 'RELIANCE', 'INFY', 'HDFC', 'HDFCBANK', 'ICICIBANK', 'KOTAKBANK', 
+    'ITC', 'LT', 'AXISBANK', 'SBIN', 'BHARTIARTL', 'ASIANPAINT', 'MARUTI',
+    'BAJFINANCE', 'HCLTECH', 'WIPRO', 'ULTRACEMCO', 'TATAMOTORS', 'SUNPHARMA',
+    'ONGC', 'TECHM', 'TATASTEEL', 'TITAN', 'POWERGRID', 'NTPC', 'NESTLEIND',
+    'BAJAJFINSV', 'ADANIGREEN', 'ADANIPORTS'
+  ];
+  
+  if (originalSymbol.includes('.BSE') || originalSymbol.includes('.NS') || 
+      exchange?.includes('BSE') || exchange?.includes('NSE') ||
+      indianStocks.includes(cleanSymbol.toUpperCase())) {
+    return 'BSE';
+  }
+  
+  // Canadian stocks
+  if (originalSymbol.includes('.TO') || exchange?.includes('TSX')) {
+    return 'TSX';
+  }
+  
+  // UK stocks
+  if (originalSymbol.includes('.L') || exchange?.includes('LSE')) {
+    return 'LSE';
+  }
+  
+  // Default to NASDAQ for US stocks
+  return 'NASDAQ';
+}
+
+// Export the utility functions
+export { cleanStockSymbol, getTradingViewExchange };
+
 // Alpha Vantage functions
 async function searchStocksAlphaVantage(keywords: string): Promise<StockSearchResult[]> {
   try {
@@ -213,17 +256,19 @@ async function searchStocksAlphaVantage(keywords: string): Promise<StockSearchRe
     );
     
     if (!response.ok) {
-      throw new Error('Alpha Vantage API request failed');
+      console.error('Alpha Vantage search: API request failed');
+      return [];
     }
     
     const data = await response.json();
     
     if (data['Error Message'] || data['Note']) {
-      throw new Error(data['Error Message'] || data['Note'] || 'Alpha Vantage API limit reached');
+      console.error('Alpha Vantage search error:', data['Error Message'] || data['Note']);
+      return [];
     }
     
     return data.bestMatches?.map((match: any) => ({
-      symbol: match['1. symbol'],
+      symbol: cleanStockSymbol(match['1. symbol']), // Clean the symbol
       name: match['2. name'],
       type: match['3. type'],
       region: match['4. region'],
@@ -235,7 +280,7 @@ async function searchStocksAlphaVantage(keywords: string): Promise<StockSearchRe
     })) || [];
   } catch (error) {
     console.error('Alpha Vantage search error:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -246,18 +291,21 @@ async function getStockQuoteAlphaVantage(symbol: string): Promise<StockQuote | n
     );
     
     if (!response.ok) {
-      throw new Error('Alpha Vantage API request failed');
+      console.error('Alpha Vantage quote: API request failed');
+      return null;
     }
     
     const data = await response.json();
     
     if (data['Error Message'] || data['Note']) {
-      throw new Error(data['Error Message'] || data['Note'] || 'Alpha Vantage API limit reached');
+      console.error('Alpha Vantage quote error:', data['Error Message'] || data['Note']);
+      return null;
     }
     
     const quote = data['Global Quote'];
     if (!quote) {
-      throw new Error('No quote data available');
+      console.error('Alpha Vantage: No quote data available');
+      return null;
     }
     
     return {
@@ -275,7 +323,7 @@ async function getStockQuoteAlphaVantage(symbol: string): Promise<StockQuote | n
     };
   } catch (error) {
     console.error('Alpha Vantage quote error:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -286,13 +334,15 @@ async function getStockOverviewAlphaVantage(symbol: string) {
     );
     
     if (!response.ok) {
-      throw new Error('Alpha Vantage API request failed');
+      console.error('Alpha Vantage overview: API request failed');
+      return null;
     }
     
     const data = await response.json();
     
     if (data['Error Message'] || data['Note']) {
-      throw new Error(data['Error Message'] || data['Note'] || 'Alpha Vantage API limit reached');
+      console.error('Alpha Vantage overview error:', data['Error Message'] || data['Note']);
+      return null;
     }
     
     return {
@@ -309,7 +359,7 @@ async function getStockOverviewAlphaVantage(symbol: string) {
     };
   } catch (error) {
     console.error('Alpha Vantage overview error:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -319,14 +369,15 @@ async function searchStocksYahoo(query: string): Promise<StockSearchResult[]> {
     const response = await fetch(`${YAHOO_SEARCH_URL}?q=${encodeURIComponent(query)}`);
     
     if (!response.ok) {
-      throw new Error('Yahoo Finance API request failed');
+      console.error('Yahoo Finance search: API request failed');
+      return [];
     }
     
     const data: YahooSearchResult = await response.json();
     
     return data.quotes?.slice(0, 10).map(quote => ({
-      symbol: quote.symbol,
-      name: quote.shortname || quote.longname || quote.symbol,
+      symbol: cleanStockSymbol(quote.symbol), // Clean the symbol
+      name: quote.shortname || quote.longname || cleanStockSymbol(quote.symbol),
       type: 'Equity', // Yahoo doesn't provide type, defaulting to Equity
       region: 'United States', // Default region
       marketOpen: '09:30',
@@ -337,43 +388,61 @@ async function searchStocksYahoo(query: string): Promise<StockSearchResult[]> {
     })) || [];
   } catch (error) {
     console.error('Yahoo Finance search error:', error);
-    throw error;
+    return [];
   }
 }
 
 async function getStockQuoteYahoo(symbol: string): Promise<StockQuote | null> {
-  try {
-    const response = await fetch(`${YAHOO_BASE_URL}?symbols=${symbol.toUpperCase()}`);
-    
-    if (!response.ok) {
-      throw new Error('Yahoo Finance API request failed');
-    }
-    
-    const data: YahooFinanceResponse = await response.json();
-    
-    if (!data.quoteResponse.result || data.quoteResponse.result.length === 0) {
-      throw new Error(`Stock symbol ${symbol} not found`);
-    }
+  // Try different symbol formats for different exchanges
+  const symbolVariants = [
+    symbol.toUpperCase(),
+    `${symbol.toUpperCase()}.NS`, // NSE format
+    `${symbol.toUpperCase()}.BO`, // BSE format
+    `${symbol.toUpperCase()}.TO`, // TSX format
+    `${symbol.toUpperCase()}.L`   // London format
+  ];
+  
+  for (const symbolVariant of symbolVariants) {
+    try {
+      console.log(`Trying Yahoo Finance with symbol: ${symbolVariant}`);
+      const response = await fetch(`${YAHOO_BASE_URL}?symbols=${symbolVariant}`);
+      
+      if (!response.ok) {
+        console.error(`Yahoo Finance quote: API request failed for ${symbolVariant}`);
+        continue;
+      }
+      
+      const data: YahooFinanceResponse = await response.json();
+      
+      if (!data.quoteResponse.result || data.quoteResponse.result.length === 0) {
+        console.error(`Yahoo Finance: Stock symbol ${symbolVariant} not found`);
+        continue;
+      }
 
-    const stock = data.quoteResponse.result[0];
-    
-    return {
-      symbol: stock.symbol,
-      name: stock.shortName || stock.longName || stock.symbol,
-      price: stock.regularMarketPrice?.toString() || '0',
-      change: stock.regularMarketChange?.toString() || '0',
-      changePercent: stock.regularMarketChangePercent?.toString() || '0',
-      volume: stock.regularMarketVolume?.toString() || '0',
-      previousClose: stock.regularMarketPreviousClose?.toString() || '0',
-      marketCap: stock.marketCap?.toString() || undefined,
-      peRatio: stock.trailingPE?.toString() || undefined,
-      high52Week: stock.fiftyTwoWeekHigh?.toString() || '0',
-      low52Week: stock.fiftyTwoWeekLow?.toString() || '0'
-    };
-  } catch (error) {
-    console.error('Yahoo Finance quote error:', error);
-    throw error;
+      const stock = data.quoteResponse.result[0];
+      
+      console.log(`Yahoo Finance: Found data for ${symbolVariant}`);
+      return {
+        symbol: cleanStockSymbol(stock.symbol), // Clean the symbol
+        name: stock.shortName || stock.longName || cleanStockSymbol(stock.symbol),
+        price: stock.regularMarketPrice?.toString() || '0',
+        change: stock.regularMarketChange?.toString() || '0',
+        changePercent: stock.regularMarketChangePercent?.toString() || '0',
+        volume: stock.regularMarketVolume?.toString() || '0',
+        previousClose: stock.regularMarketPreviousClose?.toString() || '0',
+        marketCap: stock.marketCap?.toString() || undefined,
+        peRatio: stock.trailingPE?.toString() || undefined,
+        high52Week: stock.fiftyTwoWeekHigh?.toString() || '0',
+        low52Week: stock.fiftyTwoWeekLow?.toString() || '0'
+      };
+    } catch (error) {
+      console.error(`Yahoo Finance quote error for ${symbolVariant}:`, error);
+      continue;
+    }
   }
+  
+  console.error(`Yahoo Finance: All symbol variants failed for ${symbol}`);
+  return null;
 }
 
 async function getStockOverviewYahoo(symbol: string) {
@@ -381,13 +450,15 @@ async function getStockOverviewYahoo(symbol: string) {
     const response = await fetch(`${YAHOO_BASE_URL}?symbols=${symbol.toUpperCase()}`);
     
     if (!response.ok) {
-      throw new Error('Yahoo Finance API request failed');
+      console.error('Yahoo Finance overview: API request failed');
+      return null;
     }
     
     const data: YahooFinanceResponse = await response.json();
     
     if (!data.quoteResponse.result || data.quoteResponse.result.length === 0) {
-      throw new Error(`Stock symbol ${symbol} not found`);
+      console.error(`Yahoo Finance overview: Stock symbol ${symbol} not found`);
+      return null;
     }
 
     const stock = data.quoteResponse.result[0];
@@ -406,7 +477,7 @@ async function getStockOverviewYahoo(symbol: string) {
     };
   } catch (error) {
     console.error('Yahoo Finance overview error:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -414,71 +485,68 @@ async function getStockOverviewYahoo(symbol: string) {
 export async function searchStocks(keywords: string): Promise<StockSearchResult[]> {
   console.log('Attempting stock search with Alpha Vantage...');
   
-  try {
-    const results = await searchStocksAlphaVantage(keywords);
+  const alphaResults = await searchStocksAlphaVantage(keywords);
+  
+  if (alphaResults && alphaResults.length > 0) {
     console.log('Alpha Vantage search successful');
-    return results;
-  } catch (error) {
-    console.log('Alpha Vantage search failed, falling back to Yahoo Finance...');
-    
-    try {
-      const results = await searchStocksYahoo(keywords);
-      console.log('Yahoo Finance search successful');
-      return results;
-    } catch (yahooError) {
-      console.error('Both Alpha Vantage and Yahoo Finance search failed:', {
-        alphaError: error,
-        yahooError: yahooError
-      });
-      return [];
-    }
+    return alphaResults;
   }
+  
+  console.log('Alpha Vantage search failed or empty, falling back to Yahoo Finance...');
+  
+  const yahooResults = await searchStocksYahoo(keywords);
+  
+  if (yahooResults && yahooResults.length > 0) {
+    console.log('Yahoo Finance search successful');
+    return yahooResults;
+  }
+  
+  console.error('Both Alpha Vantage and Yahoo Finance search failed or returned empty results');
+  return [];
 }
 
 export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
   console.log(`Attempting stock quote for ${symbol} with Alpha Vantage...`);
   
-  try {
-    const quote = await getStockQuoteAlphaVantage(symbol);
+  const alphaQuote = await getStockQuoteAlphaVantage(symbol);
+  
+  if (alphaQuote) {
     console.log('Alpha Vantage quote successful');
-    return quote;
-  } catch (error) {
-    console.log(`Alpha Vantage quote failed for ${symbol}, falling back to Yahoo Finance...`);
-    
-    try {
-      const quote = await getStockQuoteYahoo(symbol);
-      console.log('Yahoo Finance quote successful');
-      return quote;
-    } catch (yahooError) {
-      console.error(`Both Alpha Vantage and Yahoo Finance quote failed for ${symbol}:`, {
-        alphaError: error,
-        yahooError: yahooError
-      });
-      return null;
-    }
+    return alphaQuote;
   }
+  
+  console.log(`Alpha Vantage quote failed for ${symbol}, falling back to Yahoo Finance...`);
+  
+  const yahooQuote = await getStockQuoteYahoo(symbol);
+  
+  if (yahooQuote) {
+    console.log('Yahoo Finance quote successful');
+    return yahooQuote;
+  }
+  
+  console.error(`Both Alpha Vantage and Yahoo Finance quote failed for ${symbol}`);
+  return null;
 }
 
 export async function getStockOverview(symbol: string) {
   console.log(`Attempting stock overview for ${symbol} with Alpha Vantage...`);
   
-  try {
-    const overview = await getStockOverviewAlphaVantage(symbol);
+  const alphaOverview = await getStockOverviewAlphaVantage(symbol);
+  
+  if (alphaOverview) {
     console.log('Alpha Vantage overview successful');
-    return overview;
-  } catch (error) {
-    console.log(`Alpha Vantage overview failed for ${symbol}, falling back to Yahoo Finance...`);
-    
-    try {
-      const overview = await getStockOverviewYahoo(symbol);
-      console.log('Yahoo Finance overview successful');
-      return overview;
-    } catch (yahooError) {
-      console.error(`Both Alpha Vantage and Yahoo Finance overview failed for ${symbol}:`, {
-        alphaError: error,
-        yahooError: yahooError
-      });
-      return null;
-    }
+    return alphaOverview;
   }
+  
+  console.log(`Alpha Vantage overview failed for ${symbol}, falling back to Yahoo Finance...`);
+  
+  const yahooOverview = await getStockOverviewYahoo(symbol);
+  
+  if (yahooOverview) {
+    console.log('Yahoo Finance overview successful');
+    return yahooOverview;
+  }
+  
+  console.error(`Both Alpha Vantage and Yahoo Finance overview failed for ${symbol}`);
+  return null;
 }

@@ -10,6 +10,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { getTradingViewExchange } from '@/lib/alpha-vantage';
 
 interface ChartProps {
   stock: any;
@@ -156,13 +157,116 @@ export default function Chart({ stock }: ChartProps) {
         </CardHeader>
         <CardContent>
           <div className="h-96 lg:h-[500px] bg-gray-100 rounded-lg overflow-hidden relative">
-            {/* TradingView Widget Embed */}
-            <iframe
-              src={`https://s.tradingview.com/widgetembed/?symbol=NASDAQ%3A${stock.symbol}&interval=${timeframe}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=${showIndicators ? 'RSI@tv-basicstudies,MACD@tv-basicstudies' : ''}&theme=light&style=${chartType === 'line' ? '2' : chartType === 'area' ? '3' : '1'}&timezone=Etc%2FUTC&withdateranges=1&hideideas=1&hidevolume=${chartType === 'line' ? '1' : '0'}&hidelegend=1`}
-              className="w-full h-full border-0"
-              allowFullScreen
-              title={`TradingView Chart for ${stock.symbol}`}
-            />
+            {/* Debug Info */}
+            <div className="absolute top-2 left-2 z-10 bg-black bg-opacity-50 text-white text-xs p-2 rounded">
+              Symbol: {stock.symbol} | Exchange: {stock.exchange || 'Unknown'} | 
+              TV Exchange: {getTradingViewExchange(stock.symbol, stock.exchange)}
+            </div>
+            
+            {/* TradingView Widget Embed with Multiple Exchange Fallbacks */}
+            {(() => {
+              const exchange = getTradingViewExchange(stock.symbol, stock.exchange);
+              const symbol = stock.symbol;
+              
+              // Try multiple symbol formats in order of likelihood
+              const symbolFormats = [
+                `${exchange}:${symbol}`,
+                `BSE:${symbol}`,
+                `NSE:${symbol}`,
+                `NASDAQ:${symbol}`,
+                `NYSE:${symbol}`,
+                `TSX:${symbol}`,
+                `LSE:${symbol}`,
+                symbol // fallback to just symbol
+              ];
+              
+              console.log('TradingView - Detected Exchange:', exchange);
+              console.log('TradingView - All Symbol Formats:', symbolFormats);
+              
+              return (
+                <div className="relative w-full h-full">
+                  {symbolFormats.map((symbolFormat, index) => {
+                    const chartUrl = `https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(symbolFormat)}&interval=${timeframe}&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=${showIndicators ? 'RSI@tv-basicstudies,MACD@tv-basicstudies' : ''}&theme=light&style=${chartType === 'line' ? '2' : chartType === 'area' ? '3' : '1'}&timezone=Etc%2FUTC&withdateranges=1&hideideas=1&hidevolume=${chartType === 'line' ? '1' : '0'}&hidelegend=1`;
+                    
+                    return (
+                      <iframe
+                        key={index}
+                        src={chartUrl}
+                        className={`absolute inset-0 w-full h-full border-0 ${index === 0 ? 'z-10' : 'z-0'}`}
+                        style={{ display: index === 0 ? 'block' : 'none' }}
+                        allowFullScreen
+                        title={`TradingView Chart for ${symbolFormat}`}
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                        onLoad={(e) => {
+                          console.log(`TradingView iframe loaded for ${symbolFormat}`);
+                          // Show this iframe and hide others if it loads successfully
+                          const iframe = e.target as HTMLIFrameElement;
+                          iframe.style.display = 'block';
+                          iframe.style.zIndex = '10';
+                          
+                          // Hide previous iframes
+                          const parent = iframe.parentElement;
+                          if (parent) {
+                            Array.from(parent.children).forEach((child, childIndex) => {
+                              if (childIndex < index && child !== iframe) {
+                                (child as HTMLElement).style.display = 'none';
+                              }
+                            });
+                          }
+                        }}
+                        onError={(e) => {
+                          console.error(`TradingView iframe error for ${symbolFormat}:`, e);
+                          // Try next iframe
+                          const iframe = e.target as HTMLIFrameElement;
+                          iframe.style.display = 'none';
+                          
+                          const nextIframe = iframe.nextElementSibling as HTMLIFrameElement;
+                          if (nextIframe) {
+                            nextIframe.style.display = 'block';
+                            nextIframe.style.zIndex = '10';
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                  
+                  {/* Loading indicator */}
+                  <div className="absolute bottom-2 right-2 text-xs text-gray-500 bg-white bg-opacity-80 p-1 rounded z-20">
+                    Trying: {symbolFormats[0]}...
+                  </div>
+                  
+                  {/* Manual fallback buttons */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <div className="flex gap-1">
+                      {symbolFormats.slice(0, 4).map((format, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            // Show specific iframe
+                            const container = document.querySelector('.relative.w-full.h-full');
+                            if (container) {
+                              const iframes = container.querySelectorAll('iframe');
+                              iframes.forEach((iframe, iframeIdx) => {
+                                if (iframeIdx === idx) {
+                                  (iframe as HTMLElement).style.display = 'block';
+                                  (iframe as HTMLElement).style.zIndex = '10';
+                                } else {
+                                  (iframe as HTMLElement).style.display = 'none';
+                                }
+                              });
+                            }
+                          }}
+                          className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                          title={`Try ${format}`}
+                        >
+                          {format.split(':')[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </CardContent>
       </Card>

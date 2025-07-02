@@ -12,57 +12,30 @@ interface DashboardProps {
 export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: DashboardProps) {
   const gainLossData = calculateGainLoss(stock);
 
-  // Mock data for additional features
+  // DUMMY DATA - Replace with real data when available
   const analystRatings = {
-    buy: 12,
-    hold: 5,
-    sell: 1,
-    average: 4.2
+    buy: 0,
+    hold: 0,
+    sell: 0,
+    average: 0
   };
 
   const newsItems = [
     {
       id: 1,
-      title: "Q4 Earnings Beat Expectations by 15%",
-      time: "2 hours ago",
-      type: "earnings",
-      sentiment: "positive"
-    },
-    {
-      id: 2,
-      title: "Board Announces 8% Dividend Increase",
-      time: "1 day ago",
-      type: "dividend",
-      sentiment: "positive"
-    },
-    {
-      id: 3,
-      title: "New Product Launch in Asian Markets",
-      time: "2 days ago",
-      type: "news",
+      title: "DUMMY - No real news data available",
+      time: "N/A",
+      type: "dummy",
       sentiment: "neutral"
-    },
-    {
-      id: 4,
-      title: "Upcoming Stock Split Announcement",
-      time: "1 week ago",
-      type: "corporate",
-      sentiment: "positive"
     }
   ];
 
   const corporateActions = [
     {
-      type: "Dividend",
-      date: "2024-03-15",
-      amount: "$2.50",
-      status: "upcoming"
-    },
-    {
-      type: "Stock Split",
-      date: "2024-04-01",
-      ratio: "2:1",
-      status: "announced"
+      type: "DUMMY",
+      date: "N/A",
+      amount: "N/A",
+      status: "N/A"
     }
   ];
 
@@ -121,9 +94,9 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
             <div className="text-center p-3 bg-orange-50 rounded-lg">
               <p className="text-xs text-gray-600 mb-1">Annualized Return</p>
               <p className={`text-lg font-bold ${gainLossData.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {(gainLossData.gainLossPercent * 1.2).toFixed(2)}%
+                DUMMY%
               </p>
-              <p className="text-xs text-gray-500">Est. yearly</p>
+              <p className="text-xs text-gray-500">DUMMY calculation</p>
             </div>
           </div>
         </CardContent>
@@ -216,7 +189,7 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Book Value</span>
-                  <span className="text-sm font-medium">{formatCurrency(stock.currentPrice * 0.8)}</span>
+                  <span className="text-sm font-medium">DUMMY</span>
                 </div>
               </div>
             </div>
