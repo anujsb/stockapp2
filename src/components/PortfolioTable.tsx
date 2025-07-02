@@ -14,6 +14,7 @@ interface Stock {
   dayChangePercent: string;
   sector: string;
   industry: string;
+  exchange?: string;
 }
 
 interface PortfolioItem {
