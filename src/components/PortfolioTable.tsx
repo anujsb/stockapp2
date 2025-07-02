@@ -211,18 +211,29 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                       quantity: parseFloat(item.quantity),
                       avgPurchasePrice: parseFloat(item.avgPurchasePrice),
                       currentPrice: parseFloat(item.stock.currentPrice),
+                      previousClose: parseFloat(item.stock.previousClose || '0'),
                       dayChange: parseFloat(item.stock.dayChange),
                       dayChangePercent: parseFloat(item.stock.dayChangePercent),
                       sector: item.stock.sector,
                       industry: item.stock.industry || '',
-                      marketCap: '0',
-                      pe: 0,
-                      dividend: 0,
-                      beta: 0,
-                      volume: '0',
-                      recommendation: 'HOLD',
-                      aiSummary: '',
-                      aiReason: ''
+                      marketCap: item.stock.marketCap || 0,
+                      volume: item.stock.volume || 0,
+                      high52Week: parseFloat(item.stock.high52Week || '0'),
+                      low52Week: parseFloat(item.stock.low52Week || '0'),
+                      pe: parseFloat(item.stock.peRatio || '0'),
+                      dividend: parseFloat(item.stock.dividendYield || '0'),
+                      exchange: item.stock.exchange || '',
+                      currency: item.stock.currency || 'USD',
+                      lastUpdated: item.stock.lastUpdated,
+                      purchaseDate: item.purchaseDate,
+                      notes: item.notes || '',
+                      createdAt: item.createdAt,
+                      updatedAt: item.updatedAt,
+                      // Mock data for fields not in DB
+                      beta: 1.2, // Not available in DB
+                      recommendation: 'HOLD', // Not available in DB
+                      aiSummary: '', // Not available in DB
+                      aiReason: '' // Not available in DB
                     })}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -279,18 +290,29 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                               quantity: parseFloat(item.quantity),
                               avgPurchasePrice: parseFloat(item.avgPurchasePrice),
                               currentPrice: parseFloat(item.stock.currentPrice),
+                              previousClose: parseFloat(item.stock.previousClose || '0'),
                               dayChange: parseFloat(item.stock.dayChange),
                               dayChangePercent: parseFloat(item.stock.dayChangePercent),
                               sector: item.stock.sector,
                               industry: item.stock.industry || '',
-                              marketCap: '0',
-                              pe: 0,
-                              dividend: 0,
-                              beta: 0,
-                              volume: '0',
-                              recommendation: 'HOLD',
-                              aiSummary: '',
-                              aiReason: ''
+                              marketCap: item.stock.marketCap || 0,
+                              volume: item.stock.volume || 0,
+                              high52Week: parseFloat(item.stock.high52Week || '0'),
+                              low52Week: parseFloat(item.stock.low52Week || '0'),
+                              pe: parseFloat(item.stock.peRatio || '0'),
+                              dividend: parseFloat(item.stock.dividendYield || '0'),
+                              exchange: item.stock.exchange || '',
+                              currency: item.stock.currency || 'USD',
+                              lastUpdated: item.stock.lastUpdated,
+                              purchaseDate: item.purchaseDate,
+                              notes: item.notes || '',
+                              createdAt: item.createdAt,
+                              updatedAt: item.updatedAt,
+                              // Mock data for fields not in DB
+                              beta: 1.2, // Not available in DB
+                              recommendation: 'HOLD', // Not available in DB
+                              aiSummary: '', // Not available in DB
+                              aiReason: '' // Not available in DB
                             });
                           }}
                           className="text-blue-600 hover:text-blue-900 transition-colors"

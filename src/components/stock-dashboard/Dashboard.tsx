@@ -166,19 +166,27 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Market Cap</span>
-                  <span className="text-sm font-medium">{stock.marketCap}</span>
+                  <span className="text-sm font-medium">
+                    {stock.marketCap ? new Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(stock.marketCap) : 'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">52W High</span>
-                  <span className="text-sm font-medium">{formatCurrency(stock.currentPrice * 1.15)}</span>
+                  <span className="text-sm font-medium">
+                    {stock.high52Week > 0 ? formatCurrency(stock.high52Week) : 'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">52W Low</span>
-                  <span className="text-sm font-medium">{formatCurrency(stock.currentPrice * 0.75)}</span>
+                  <span className="text-sm font-medium">
+                    {stock.low52Week > 0 ? formatCurrency(stock.low52Week) : 'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Volume</span>
-                  <span className="text-sm font-medium">{stock.volume}</span>
+                  <span className="text-sm font-medium">
+                    {stock.volume ? new Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(stock.volume) : 'N/A'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -188,15 +196,23 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">P/E Ratio</span>
-                  <span className="text-sm font-medium">{stock.pe}</span>
+                  <span className="text-sm font-medium">{stock.pe > 0 ? stock.pe.toFixed(2) : 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Beta</span>
-                  <span className="text-sm font-medium">{stock.beta}</span>
+                  <span className="text-sm font-medium">{stock.beta > 0 ? stock.beta.toFixed(2) : 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Dividend Yield</span>
-                  <span className="text-sm font-medium">{stock.dividend}%</span>
+                  <span className="text-sm font-medium">{stock.dividend > 0 ? stock.dividend.toFixed(2) + '%' : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Exchange</span>
+                  <span className="text-sm font-medium">{stock.exchange || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Currency</span>
+                  <span className="text-sm font-medium">{stock.currency || 'USD'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Book Value</span>
