@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Trash2, TrendingUp, TrendingDown, Eye } from 'lucide-react';
 
 interface Stock {
   id: number;
@@ -268,16 +268,47 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(item.id);
-                        }}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                        title="Remove from portfolio"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStockClick && onStockClick({
+                              id: item.stock.id,
+                              symbol: item.stock.symbol,
+                              name: item.stock.name,
+                              quantity: parseFloat(item.quantity),
+                              avgPurchasePrice: parseFloat(item.avgPurchasePrice),
+                              currentPrice: parseFloat(item.stock.currentPrice),
+                              dayChange: parseFloat(item.stock.dayChange),
+                              dayChangePercent: parseFloat(item.stock.dayChangePercent),
+                              sector: item.stock.sector,
+                              industry: item.stock.industry || '',
+                              marketCap: '0',
+                              pe: 0,
+                              dividend: 0,
+                              beta: 0,
+                              volume: '0',
+                              recommendation: 'HOLD',
+                              aiSummary: '',
+                              aiReason: ''
+                            });
+                          }}
+                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                          title="View stock details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(item.id);
+                          }}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                          title="Remove from portfolio"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
