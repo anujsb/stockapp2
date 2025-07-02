@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stocks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { getStockQuote, getStockOverview } from '@/lib/alpha-vantage';
+import { fetchStockData } from '@/lib/stock-api';
 import { cleanSymbol, extractExchangeFromSymbol } from '@/lib/trading-view-utils';
 
 // Fixed interface - should match Next.js 15 expectations
@@ -28,87 +28,93 @@ export async function GET(request: NextRequest, context: RouteContext) {
     let stock = await db.select().from(stocks).where(eq(stocks.symbol, cleanedSymbol)).limit(1);
 
     if (stock.length === 0) {
-      console.log(`Stock ${symbol} not found in database, fetching from APIs...`);
+      console.log(`Stock ${symbol} not found in database, fetching from comprehensive APIs...`);
       
-      // Fetch from APIs with fallback and store in database
-      const [quote, overview] = await Promise.all([
-        getStockQuote(symbol),
-        getStockOverview(symbol)
-      ]);
+      // Fetch comprehensive stock data with Alpha Vantage primary and Yahoo fallback
+      const stockData = await fetchStockData(symbol);
 
-      if (!quote) {
-        console.log(`No quote data available for ${symbol}`);
+      if (!stockData) {
+        console.log(`No stock data available for ${symbol}`);
         return NextResponse.json({ error: 'Stock not found' }, { status: 404 });
       }
 
-      console.log(`Successfully fetched data for ${symbol}, storing in database...`);
+      console.log(`Successfully fetched comprehensive data for ${symbol}, storing in database...`);
 
-      const stockData = {
-        symbol: cleanedSymbol,
-        name: overview?.name || quote.name || cleanedSymbol,
-        currentPrice: quote.price,
-        previousClose: quote.previousClose,
-        dayChange: quote.change,
-        dayChangePercent: quote.changePercent,
-        volume: quote.volume ? parseInt(quote.volume) : null,
-        high52Week: overview?.high52Week || quote.high52Week,
-        low52Week: overview?.low52Week || quote.low52Week,
-        peRatio: overview?.peRatio || quote.peRatio,
-        dividendYield: overview?.dividendYield,
-        sector: overview?.sector,
-        industry: overview?.industry,
-        exchange: extractedExchange || overview?.exchange,
-        marketCap: overview?.marketCap ? parseInt(overview.marketCap) : (quote.marketCap ? parseInt(quote.marketCap) : null),
-        currency: 'USD'
+      const dbStockData = {
+        symbol: stockData.symbol,
+        name: stockData.info.longName || stockData.symbol,
+        currentPrice: stockData.info.currentPrice.toString(),
+        previousClose: stockData.info.regularMarketPreviousClose.toString(),
+        dayChange: stockData.info.regularMarketChange.toString(),
+        dayChangePercent: stockData.info.regularMarketChangePercent.toString(),
+        volume: stockData.info.regularMarketVolume || null,
+        high52Week: stockData.info.fiftyTwoWeekHigh?.toString() || null,
+        low52Week: stockData.info.fiftyTwoWeekLow?.toString() || null,
+        peRatio: stockData.info.trailingPE?.toString() || null,
+        dividendYield: stockData.info.dividendYield?.toString() || null,
+        sector: stockData.info.sector,
+        industry: stockData.info.industry,
+        exchange: 'NSE', // Default to NSE for Indian stocks
+        marketCap: stockData.info.marketCap || null,
+        currency: 'INR' // Set to INR for Indian stocks
       };
 
       try {
-        const [insertedStock] = await db.insert(stocks).values(stockData).returning();
+        const [insertedStock] = await db.insert(stocks).values(dbStockData).returning();
         console.log(`Successfully stored ${symbol} in database`);
-        return NextResponse.json(insertedStock);
+        return NextResponse.json({
+          ...insertedStock,
+          technicalIndicators: stockData.technicalIndicators,
+          historicalData: stockData.historicalData.slice(-30), // Last 30 days
+          fundamentalData: {
+            isEstimated: stockData.info.isEstimated || false,
+            marketCap: stockData.info.marketCap,
+            trailingPE: stockData.info.trailingPE,
+            priceToBook: stockData.info.priceToBook,
+            dividendYield: stockData.info.dividendYield,
+            returnOnEquity: stockData.info.returnOnEquity,
+            currentRatio: stockData.info.currentRatio,
+            debtToEquity: stockData.info.debtToEquity,
+            beta: stockData.info.beta
+          }
+        });
       } catch (dbError) {
         console.error(`Database insert error for ${symbol}:`, dbError);
         // Return the stock data even if database insert fails
         return NextResponse.json({
-          ...stockData,
+          ...dbStockData,
           id: Date.now(), // Temporary ID
           createdAt: new Date(),
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          technicalIndicators: stockData.technicalIndicators,
+          historicalData: stockData.historicalData.slice(-30)
         });
       }
     } else {
-      console.log(`Stock ${symbol} found in database, updating with fresh data...`);
+      console.log(`Stock ${symbol} found in database, updating with fresh comprehensive data...`);
       
-      // Update existing stock with fresh data
-      const [quote, overview] = await Promise.all([
-        getStockQuote(symbol),
-        getStockOverview(symbol)
-      ]);
+      // Update existing stock with fresh comprehensive data
+      const stockData = await fetchStockData(symbol);
 
-      if (quote) {
-        console.log(`Got fresh data for ${symbol}, updating database...`);
+      if (stockData) {
+        console.log(`Got fresh comprehensive data for ${symbol}, updating database...`);
         
         const updateData = {
-          currentPrice: quote.price,
-          previousClose: quote.previousClose,
-          dayChange: quote.change,
-          dayChangePercent: quote.changePercent,
-          volume: quote.volume ? parseInt(quote.volume) : null,
+          name: stockData.info.longName || stock[0].name,
+          currentPrice: stockData.info.currentPrice.toString(),
+          previousClose: stockData.info.regularMarketPreviousClose.toString(),
+          dayChange: stockData.info.regularMarketChange.toString(),
+          dayChangePercent: stockData.info.regularMarketChangePercent.toString(),
+          volume: stockData.info.regularMarketVolume || null,
+          high52Week: stockData.info.fiftyTwoWeekHigh?.toString() || null,
+          low52Week: stockData.info.fiftyTwoWeekLow?.toString() || null,
+          peRatio: stockData.info.trailingPE?.toString() || null,
+          dividendYield: stockData.info.dividendYield?.toString() || null,
+          sector: stockData.info.sector || stock[0].sector,
+          industry: stockData.info.industry || stock[0].industry,
+          marketCap: stockData.info.marketCap || stock[0].marketCap,
           lastUpdated: new Date()
         };
-
-        if (overview) {
-          Object.assign(updateData, {
-            name: overview.name,
-            sector: overview.sector,
-            industry: overview.industry,
-            peRatio: overview.peRatio,
-            dividendYield: overview.dividendYield,
-            high52Week: overview.high52Week,
-            low52Week: overview.low52Week,
-            marketCap: overview.marketCap ? parseInt(overview.marketCap) : null
-          });
-        }
 
         try {
           const [updatedStock] = await db
@@ -118,11 +124,30 @@ export async function GET(request: NextRequest, context: RouteContext) {
             .returning();
 
           console.log(`Successfully updated ${symbol} in database`);
-          return NextResponse.json(updatedStock);
+          return NextResponse.json({
+            ...updatedStock,
+            technicalIndicators: stockData.technicalIndicators,
+            historicalData: stockData.historicalData.slice(-30), // Last 30 days
+            fundamentalData: {
+              isEstimated: stockData.info.isEstimated || false,
+              marketCap: stockData.info.marketCap,
+              trailingPE: stockData.info.trailingPE,
+              priceToBook: stockData.info.priceToBook,
+              dividendYield: stockData.info.dividendYield,
+              returnOnEquity: stockData.info.returnOnEquity,
+              currentRatio: stockData.info.currentRatio,
+              debtToEquity: stockData.info.debtToEquity,
+              beta: stockData.info.beta
+            }
+          });
         } catch (dbError) {
           console.error(`Database update error for ${symbol}:`, dbError);
-          // Return the existing stock data if update fails
-          return NextResponse.json(stock[0]);
+          // Return the existing stock data with fresh technical data if update fails
+          return NextResponse.json({
+            ...stock[0],
+            technicalIndicators: stockData.technicalIndicators,
+            historicalData: stockData.historicalData.slice(-30)
+          });
         }
       } else {
         console.log(`No fresh data available for ${symbol}, returning cached data`);
