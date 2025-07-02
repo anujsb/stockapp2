@@ -490,7 +490,6 @@ import AIAnalysis from '@/components/stock-ai-analysis/AIAnalysis';
 import Financials from '@/components/stock-financials/Financials';
 import Technicals from '@/components/stock-technicals/Technicals';
 import NewsAndActions from '@/components/stock-news-actions/NewsAndActions';
-import CSVUploadModal from '@/components/CSVUploadModal';
 
 interface PortfolioStock {
   id: number;
@@ -815,11 +814,68 @@ export default function PortfolioPage() {
             </div>
           )}
 
-          <CSVUploadModal
-            isOpen={isCSVModalOpen}
-            onClose={() => setIsCSVModalOpen(false)}
-            onUploadSuccess={handleStockAdded}
-          />
+          {isCSVModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">Import Portfolio from CSV</h2>
+                  <Button
+                    onClick={() => setIsCSVModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Drag and drop your CSV file here, or click to browse
+                    </p>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      className="hidden"
+                      id="csv-upload"
+                    />
+                    <label
+                      htmlFor="csv-upload"
+                      className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Select File
+                    </label>
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    <p className="mb-2">CSV should contain columns:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Symbol (required)</li>
+                      <li>Quantity (required)</li>
+                      <li>Average Price (required)</li>
+                      <li>Notes (optional)</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => setIsCSVModalOpen(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Import
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
 
         <AddStockModal

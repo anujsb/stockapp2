@@ -17,28 +17,15 @@ export async function GET(request: NextRequest) {
         avgPurchasePrice: userPortfolio.avgPurchasePrice,
         purchaseDate: userPortfolio.purchaseDate,
         notes: userPortfolio.notes,
-        createdAt: userPortfolio.createdAt,
-        updatedAt: userPortfolio.updatedAt,
         stock: {
           id: stocks.id,
           symbol: stocks.symbol,
           name: stocks.name,
           currentPrice: stocks.currentPrice,
-          previousClose: stocks.previousClose,
           dayChange: stocks.dayChange,
           dayChangePercent: stocks.dayChangePercent,
-          marketCap: stocks.marketCap,
-          volume: stocks.volume,
-          high52Week: stocks.high52Week,
-          low52Week: stocks.low52Week,
-          peRatio: stocks.peRatio,
-          dividendYield: stocks.dividendYield,
           sector: stocks.sector,
-          industry: stocks.industry,
-          exchange: stocks.exchange,
-          currency: stocks.currency,
-          lastUpdated: stocks.lastUpdated,
-          createdAt: stocks.createdAt
+          industry: stocks.industry
         }
       })
       .from(userPortfolio)
