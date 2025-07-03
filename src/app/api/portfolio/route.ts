@@ -3,11 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userPortfolio, stocks } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId') || 'default-user'; // For demo purposes
-
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const portfolio = await db
       .select({
@@ -41,10 +43,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const body = await request.json();
-    let { userId = 'default-user', stockId, symbol, quantity, avgPurchasePrice, notes } = body;
-
+    let { stockId, symbol, quantity, avgPurchasePrice, notes } = body;
     // If stockId is not a valid integer, try to look up by symbol
     if (!stockId || isNaN(Number(stockId)) || Number(stockId) > 2147483647) {
       if (!symbol) {
@@ -57,14 +62,12 @@ export async function POST(request: NextRequest) {
       }
       stockId = stockRecord[0].id;
     }
-
     // Check if stock already exists in portfolio
     const existingEntry = await db
       .select()
       .from(userPortfolio)
       .where(and(eq(userPortfolio.userId, userId), eq(userPortfolio.stockId, stockId)))
       .limit(1);
-
     if (existingEntry.length > 0) {
       // Instead of updating, notify user
       return NextResponse.json({
@@ -85,7 +88,6 @@ export async function POST(request: NextRequest) {
           purchaseDate: new Date()
         })
         .returning();
-
       return NextResponse.json(newEntry);
     }
   } catch (error) {

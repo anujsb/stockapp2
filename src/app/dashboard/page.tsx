@@ -52,15 +52,17 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (user?.id) {
+      fetchDashboardData(user.id);
+    }
+  }, [user?.id]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (userId: string) => {
     try {
       setLoading(true);
 
       // Fetch portfolio data
-      const portfolioResponse = await fetch('/api/portfolio');
+      const portfolioResponse = await fetch(`/api/portfolio?userId=${userId}`);
       if (portfolioResponse.ok) {
         const portfolioArray = await portfolioResponse.json();
         setPortfolio(portfolioArray);

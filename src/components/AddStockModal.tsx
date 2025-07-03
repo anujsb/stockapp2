@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import StockSearch from './StockSearch';
 import { Button } from './ui/button';
+import { useUser } from '@clerk/nextjs';
 
 interface StockSearchResult {
   symbol: string;
@@ -22,6 +23,7 @@ interface AddStockModalProps {
 }
 
 export default function AddStockModal({ isOpen, onClose, onStockAdded }: AddStockModalProps) {
+  const { user } = useUser();
   const [selectedStock, setSelectedStock] = useState<StockSearchResult | null>(null);
   const [quantity, setQuantity] = useState('');
   const [avgPrice, setAvgPrice] = useState('');
@@ -38,17 +40,18 @@ export default function AddStockModal({ isOpen, onClose, onStockAdded }: AddStoc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStock || !quantity || !avgPrice) return;
-
+    if (!user?.id) {
+      alert('You must be signed in to add stocks.');
+      return;
+    }
     setIsLoading(true);
     try {
       // First, fetch/create the stock
       const stockResponse = await fetch(`/api/stocks/${selectedStock.symbol}`);
       const stockData = await stockResponse.json();
-
       if (!stockResponse.ok) {
         throw new Error(stockData.error || 'Failed to fetch stock data');
       }
-
       // Then add to portfolio
       const portfolioResponse = await fetch('/api/portfolio', {
         method: 'POST',
@@ -56,17 +59,16 @@ export default function AddStockModal({ isOpen, onClose, onStockAdded }: AddStoc
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          userId: user.id,
           stockId: stockData.id,
           quantity: parseFloat(quantity),
           avgPurchasePrice: parseFloat(avgPrice),
           notes,
         }),
       });
-
       if (!portfolioResponse.ok) {
         throw new Error('Failed to add stock to portfolio');
       }
-
       resetForm();
       onClose();
       onStockAdded();
