@@ -66,7 +66,7 @@ export function SideBar() {
             </nav>
           </div>
           <div>
-            <SidebarLink
+            {/* <SidebarLink
               link={{
                 label: "21bubbles",
                 href: "https://21bubbles.com/",
@@ -82,7 +82,7 @@ export function SideBar() {
                 ),
               }}
               aria-label="Visit 21bubbles website"
-            />
+            /> */}
             <div className="">
               <SignedIn>
                 <UserButton />

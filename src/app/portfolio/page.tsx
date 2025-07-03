@@ -476,7 +476,7 @@
 // src/app/portfolio/page.tsx
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, PieChart, Upload, TrendingUp, TrendingDown, BarChart3, FileText, Brain, Target, AlertTriangle } from 'lucide-react';
 import AddStockModal from '@/components/AddStockModal';
 import PortfolioTable from '@/components/PortfolioTable';
@@ -644,6 +644,20 @@ export default function PortfolioPage() {
       default: return <AlertTriangle className="h-4 w-4" />;
     }
   };
+
+  useEffect(() => {
+    // Function to update all stocks
+    const updateAllStocks = async () => {
+      try {
+        await fetch('/api/stocks/update-all', { method: 'POST' });
+      } catch (e) {
+        // Silently ignore errors
+      }
+    };
+    updateAllStocks(); // On mount
+    const interval = setInterval(updateAllStocks, 10 * 60 * 1000); // Every 10 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden">
