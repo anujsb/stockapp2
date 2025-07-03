@@ -1,0 +1,9 @@
+{
+  "cron": [
+    {
+      "path": "/api/stocks/update-all",
+      "schedule": "*/10 3-9 * * 1-5",
+      "method": "POST"
+    }
+  ]
+} 

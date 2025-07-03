@@ -1,4 +1,3 @@
-
 // src/components/PortfolioTable.tsx
 'use client';
 
@@ -32,23 +31,59 @@ interface PortfolioTableProps {
   onStockClick?: (stock: any) => void;
 }
 
+// Helper to check if Indian market is open
+function isIndianMarketOpen() {
+  const now = new Date();
+  // Convert to IST (UTC+5:30)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const ist = new Date(utc + istOffset);
+  const hours = ist.getHours();
+  const minutes = ist.getMinutes();
+  const mins = hours * 60 + minutes;
+  return mins >= 555 && mins <= 930 && ist.getDay() >= 1 && ist.getDay() <= 5; // Mon-Fri
+}
+
 export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockClick }: PortfolioTableProps) {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [marketOpen, setMarketOpen] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+
+  // Auto-refresh every 10 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPortfolio();
+    }, 10 * 60 * 1000); // 10 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchPortfolio = async () => {
+    setIsFetching(true);
     try {
-      const response = await fetch('/api/portfolio');
+      const response = await fetch('/api/portfolio/');
       if (response.ok) {
         const data = await response.json();
         setPortfolio(data);
+        // Find the most recent lastUpdated
+        const times = data.map((item: any) => item.stock.lastUpdated).filter(Boolean);
+        if (times.length > 0) {
+          setLastUpdated(new Date(Math.max(...times.map((t: string) => new Date(t).getTime()))));
+        }
       }
     } catch (error) {
       console.error('Error fetching portfolio:', error);
     } finally {
       setIsLoading(false);
+      setMarketOpen(isIndianMarketOpen());
+      setIsFetching(false);
     }
   };
+
+  useEffect(() => {
+    fetchPortfolio();
+  }, [refreshTrigger]);
 
   const calculateGainLoss = (item: PortfolioItem) => {
     const currentPrice = parseFloat(item.stock.currentPrice);
@@ -89,10 +124,6 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
   const totalGainLossPercent = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
 
   useEffect(() => {
-    fetchPortfolio();
-  }, [refreshTrigger]);
-
-  useEffect(() => {
     if (onDataUpdate && portfolio.length >= 0) {
       const summary = {
         totalPortfolioValue,
@@ -110,7 +141,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
     }
 
     try {
-      const response = await fetch(`/api/portfolio?id=${id}`, {
+      const response = await fetch(`/api/portfolio/?id=${id}`, {
         method: 'DELETE',
       });
 
@@ -141,6 +172,22 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
 
   return (
     <div className="space-y-6">
+      {/* Last Updated and Market Status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <div className="text-xs text-gray-500 flex items-center gap-1">
+              Last updated: {lastUpdated.toLocaleString('en-IN', { hour12: true })}
+              {isFetching && (
+                <span className="animate-spin inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full ml-1"></span>
+              )}
+            </div>
+          )}
+        </div>
+        {!marketOpen && (
+          <div className="text-xs text-red-600 font-semibold">Indian stock market is closed. Showing last close price.</div>
+        )}
+      </div>
       {/* Portfolio Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg border border-gray-200">
