@@ -19,11 +19,6 @@ function isIndianMarketOpen() {
 }
 
 export async function POST(request: NextRequest) {
-  // Security: Only allow if CRON_SECRET matches
-  if (request.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   if (!isIndianMarketOpen()) {
     return NextResponse.json({ message: 'Indian stock market is closed. No updates performed.' }, { status: 200 });
   }
