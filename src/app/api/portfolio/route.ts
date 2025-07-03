@@ -1,4 +1,3 @@
-
 // src/app/api/portfolio/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
@@ -43,7 +42,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId = 'default-user', stockId, quantity, avgPurchasePrice, notes } = body;
+    let { userId = 'default-user', stockId, symbol, quantity, avgPurchasePrice, notes } = body;
+
+    // If stockId is not a valid integer, try to look up by symbol
+    if (!stockId || isNaN(Number(stockId)) || Number(stockId) > 2147483647) {
+      if (!symbol) {
+        return NextResponse.json({ error: 'Stock symbol required if stockId is not valid' }, { status: 400 });
+      }
+      // Look up stock by symbol
+      const stockRecord = await db.select().from(stocks).where(eq(stocks.symbol, symbol)).limit(1);
+      if (stockRecord.length === 0) {
+        return NextResponse.json({ error: 'Stock not found in database' }, { status: 404 });
+      }
+      stockId = stockRecord[0].id;
+    }
 
     // Check if stock already exists in portfolio
     const existingEntry = await db
@@ -53,29 +65,12 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingEntry.length > 0) {
-      // Update existing entry
-      const current = existingEntry[0];
-      const currentQuantity = parseFloat(current.quantity);
-      const currentAvgPrice = parseFloat(current.avgPurchasePrice || '0');
-      const newQuantity = parseFloat(quantity);
-      const newAvgPrice = parseFloat(avgPurchasePrice);
-
-      const totalQuantity = currentQuantity + newQuantity;
-      const totalValue = (currentQuantity * currentAvgPrice) + (newQuantity * newAvgPrice);
-      const newAvgPurchasePrice = totalValue / totalQuantity;
-
-      const [updatedEntry] = await db
-        .update(userPortfolio)
-        .set({
-          quantity: totalQuantity.toString(),
-          avgPurchasePrice: newAvgPurchasePrice.toString(),
-          notes: notes || current.notes,
-          updatedAt: new Date()
-        })
-        .where(eq(userPortfolio.id, current.id))
-        .returning();
-
-      return NextResponse.json(updatedEntry);
+      // Instead of updating, notify user
+      return NextResponse.json({
+        message: 'Stock already exists in your portfolio.',
+        alreadyExists: true,
+        entry: existingEntry[0]
+      }, { status: 200 });
     } else {
       // Create new entry
       const [newEntry] = await db

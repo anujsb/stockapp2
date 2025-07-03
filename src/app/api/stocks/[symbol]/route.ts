@@ -59,6 +59,28 @@ export async function GET(request: NextRequest, context: RouteContext) {
         currency: 'INR' // Set to INR for Indian stocks
       };
 
+      // Check again before insert (race condition safe)
+      const existingStock = await db.select().from(stocks).where(eq(stocks.symbol, dbStockData.symbol)).limit(1);
+      if (existingStock.length > 0) {
+        // Already exists, return it with technical/historical data if available
+        return NextResponse.json({
+          ...existingStock[0],
+          technicalIndicators: stockData.technicalIndicators,
+          historicalData: stockData.historicalData.slice(-30),
+          fundamentalData: {
+            isEstimated: stockData.info.isEstimated || false,
+            marketCap: stockData.info.marketCap,
+            trailingPE: stockData.info.trailingPE,
+            priceToBook: stockData.info.priceToBook,
+            dividendYield: stockData.info.dividendYield,
+            returnOnEquity: stockData.info.returnOnEquity,
+            currentRatio: stockData.info.currentRatio,
+            debtToEquity: stockData.info.debtToEquity,
+            beta: stockData.info.beta
+          }
+        });
+      }
+
       try {
         const [insertedStock] = await db.insert(stocks).values(dbStockData).returning();
         console.log(`Successfully stored ${symbol} in database`);

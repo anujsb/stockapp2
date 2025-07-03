@@ -1,7 +1,7 @@
 // Enhanced Stock API with Alpha Vantage primary and Yahoo Finance fallback
 // Supports NSE/BSE Indian stocks with comprehensive fundamental data
 
-
+import { mapToYahooSymbol } from './trading-view-utils';
 
 // src/lib/alpha-vantage.ts
 export interface StockQuote {

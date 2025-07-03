@@ -139,3 +139,19 @@ export function extractExchangeFromSymbol(symbol: string): string | null {
       return suffix;
   }
 }
+
+/**
+ * Maps a stock symbol to Yahoo Finance's expected format
+ * @param symbol - Stock symbol (may include exchange suffix)
+ * @returns Yahoo-compatible symbol string
+ */
+export function mapToYahooSymbol(symbol: string): string {
+  let base = symbol.split('.')[0];
+  let suffix = symbol.split('.')[1];
+  if (suffix === 'NS' || suffix === 'NSE' || !suffix) {
+    return `${base}.NS`;
+  } else if (suffix === 'BO' || suffix === 'BSE') {
+    return `${base}.BO`;
+  }
+  return base;
+}

@@ -12,6 +12,8 @@ const YFINANCE_API_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 // Additional data sources for Indian stocks
 const YAHOO_QUOTE_API = 'https://query1.finance.yahoo.com/v7/finance/quote';
 
+import { mapToYahooSymbol } from './trading-view-utils';
+
 export interface FundamentalData {
   marketCap?: number | null;
   trailingPE?: number | null;
@@ -140,20 +142,22 @@ const fetchAlphaVantageData = async (symbol: string): Promise<FundamentalData> =
 export const fetchStockData = async (symbol: string): Promise<StockData | null> => {
   try {
     console.log('Fetching data for symbol:', symbol);
-    
-    const formattedSymbol = symbol.includes('.') ? symbol : `${symbol}.NS`;
-    
+    const yahooSymbol = mapToYahooSymbol(symbol);
+    const baseSymbol = symbol.includes('.') ? symbol.split('.')[0] : symbol;
+    const symbolVariants = [
+      mapToYahooSymbol(baseSymbol + '.NS'),
+      mapToYahooSymbol(baseSymbol + '.BO'),
+      baseSymbol
+    ];
     // Primary strategy: Alpha Vantage for fundamentals + Yahoo for real-time prices
     try {
+      const formattedSymbol = symbol.includes('.') ? symbol : `${symbol}.NS`;
       const fundamentalData = await fetchAlphaVantageData(formattedSymbol);
       console.log('Alpha Vantage fundamental data:', fundamentalData);
-
-      const chartData = await fetchChartData(formattedSymbol);
+      const chartData = await fetchChartData(yahooSymbol);
       console.log('Chart data received:', chartData);
-      
       const timestamps = chartData.chart.result[0].timestamp || [];
       const prices = chartData.chart.result[0].indicators?.quote?.[0] || {};
-      
       const historicalData = timestamps.map((timestamp: number, index: number) => ({
         date: new Date(timestamp * 1000).toISOString().split('T')[0],
         open: prices.open?.[index] || 0,
@@ -162,16 +166,14 @@ export const fetchStockData = async (symbol: string): Promise<StockData | null> 
         close: prices.close?.[index] || 0,
         volume: prices.volume?.[index] || 0
       })).filter((item: HistoricalDataPoint) => item.close !== null && item.close !== 0);
-
       const technicalIndicators = calculateTechnicalIndicators(historicalData);
       const chartMeta = chartData.chart.result[0].meta;
       const currentPrice = chartMeta.regularMarketPrice || 0;
       const previousClose = chartMeta.chartPreviousClose || chartMeta.previousClose || 0;
       const change = currentPrice - previousClose;
       const changePercent = previousClose ? (change / previousClose) * 100 : 0;
-      
       const info: StockInfo = {
-        longName: getCompanyName(formattedSymbol), // Stick with our mapping for consistency
+        longName: getCompanyName(formattedSymbol),
         currentPrice,
         regularMarketPrice: currentPrice,
         regularMarketChange: change,
@@ -182,86 +184,143 @@ export const fetchStockData = async (symbol: string): Promise<StockData | null> 
         regularMarketVolume: chartMeta.regularMarketVolume || null,
         country: 'India',
         symbol: formattedSymbol,
-        ...fundamentalData, // Spread the real data here
+        ...fundamentalData,
       };
-
       console.log('Final processed info with Alpha Vantage data:', info);
-
       return {
         symbol: formattedSymbol,
         info,
         historicalData,
         technicalIndicators
       };
-
     } catch (error) {
-      console.warn('Primary data fetch failed, falling back to estimates:', error);
-
-      // Fallback: Yahoo Finance chart data + our estimates
-      const chartData = await fetchChartData(formattedSymbol);
-      console.log('Chart data received (fallback):', chartData);
-
-      const timestamps = chartData.chart.result[0].timestamp || [];
-      const prices = chartData.chart.result[0].indicators?.quote?.[0] || {};
-      
-      const historicalData = timestamps.map((timestamp: number, index: number) => ({
-        date: new Date(timestamp * 1000).toISOString().split('T')[0],
-        open: prices.open?.[index] || 0,
-        high: prices.high?.[index] || 0,
-        low: prices.low?.[index] || 0,
-        close: prices.close?.[index] || 0,
-        volume: prices.volume?.[index] || 0
-      })).filter((item: HistoricalDataPoint) => item.close !== null && item.close !== 0);
-
-      const technicalIndicators = calculateTechnicalIndicators(historicalData);
-      const chartMeta = chartData.chart.result[0].meta;
-      console.log('Chart meta data (fallback):', chartMeta);
-
-      const currentPrice = chartMeta.regularMarketPrice || 0;
-      const previousClose = chartMeta.chartPreviousClose || chartMeta.previousClose || 0;
-      const change = currentPrice - previousClose;
-      const changePercent = previousClose ? (change / previousClose) * 100 : 0;
-
-      const fundamentalData = generateEnhancedFinancials(formattedSymbol, currentPrice, chartMeta);
-      fundamentalData.isEstimated = true;
-
-      const info: StockInfo = {
-        longName: chartMeta.longName || getCompanyName(formattedSymbol),
-        currentPrice,
-        regularMarketPrice: currentPrice,
-        regularMarketChange: change,
-        regularMarketChangePercent: changePercent,
-        regularMarketPreviousClose: previousClose,
-        marketCap: chartMeta.marketCap || fundamentalData.marketCap || null,
-        fiftyTwoWeekHigh: chartMeta.fiftyTwoWeekHigh || fundamentalData.fiftyTwoWeekHigh || null,
-        fiftyTwoWeekLow: chartMeta.fiftyTwoWeekLow || fundamentalData.fiftyTwoWeekLow || null,
-        regularMarketDayHigh: chartMeta.regularMarketDayHigh || null,
-        regularMarketDayLow: chartMeta.regularMarketDayLow || null,
-        regularMarketVolume: chartMeta.regularMarketVolume || null,
-        trailingPE: fundamentalData.trailingPE || null,
-        priceToBook: fundamentalData.priceToBook || null,
-        dividendYield: fundamentalData.dividendYield || null,
-        returnOnEquity: fundamentalData.returnOnEquity || null,
-        currentRatio: fundamentalData.currentRatio || null,
-        debtToEquity: fundamentalData.debtToEquity || null,
-        trailingEps: fundamentalData.trailingEps || null,
-        beta: fundamentalData.beta || null,
-        sector: fundamentalData.sector || getDefaultSector(formattedSymbol),
-        industry: fundamentalData.industry || getDefaultIndustry(formattedSymbol),
-        description: fundamentalData.description || null,
-        isEstimated: fundamentalData.isEstimated || false,
-        country: 'India',
-        symbol: formattedSymbol
-      };
-
-      console.log('Final processed info with enhanced financial data (fallback):', info);
-
-      return {
-        symbol: formattedSymbol,
-        info,
-        historicalData,
-        technicalIndicators
-      };
+      console.warn('Primary data fetch failed, falling back to Yahoo chart/estimates:', error);
+      try {
+        const chartData = await fetchChartData(yahooSymbol);
+        console.log('Chart data received (fallback):', chartData);
+        const timestamps = chartData.chart.result[0].timestamp || [];
+        const prices = chartData.chart.result[0].indicators?.quote?.[0] || {};
+        const historicalData = timestamps.map((timestamp: number, index: number) => ({
+          date: new Date(timestamp * 1000).toISOString().split('T')[0],
+          open: prices.open?.[index] || 0,
+          high: prices.high?.[index] || 0,
+          low: prices.low?.[index] || 0,
+          close: prices.close?.[index] || 0,
+          volume: prices.volume?.[index] || 0
+        })).filter((item: HistoricalDataPoint) => item.close !== null && item.close !== 0);
+        const technicalIndicators = calculateTechnicalIndicators(historicalData);
+        const chartMeta = chartData.chart.result[0].meta;
+        console.log('Chart meta data (fallback):', chartMeta);
+        const currentPrice = chartMeta.regularMarketPrice || 0;
+        const previousClose = chartMeta.chartPreviousClose || chartMeta.previousClose || 0;
+        const change = currentPrice - previousClose;
+        const changePercent = previousClose ? (change / previousClose) * 100 : 0;
+        const fundamentalData = generateEnhancedFinancials(yahooSymbol, currentPrice, chartMeta);
+        fundamentalData.isEstimated = true;
+        const info: StockInfo = {
+          longName: chartMeta.longName || getCompanyName(yahooSymbol),
+          currentPrice,
+          regularMarketPrice: currentPrice,
+          regularMarketChange: change,
+          regularMarketChangePercent: changePercent,
+          regularMarketPreviousClose: previousClose,
+          marketCap: chartMeta.marketCap || fundamentalData.marketCap || null,
+          fiftyTwoWeekHigh: chartMeta.fiftyTwoWeekHigh || fundamentalData.fiftyTwoWeekHigh || null,
+          fiftyTwoWeekLow: chartMeta.fiftyTwoWeekLow || fundamentalData.fiftyTwoWeekLow || null,
+          regularMarketDayHigh: chartMeta.regularMarketDayHigh || null,
+          regularMarketDayLow: chartMeta.regularMarketDayLow || null,
+          regularMarketVolume: chartMeta.regularMarketVolume || null,
+          trailingPE: fundamentalData.trailingPE || null,
+          priceToBook: fundamentalData.priceToBook || null,
+          dividendYield: fundamentalData.dividendYield || null,
+          returnOnEquity: fundamentalData.returnOnEquity || null,
+          currentRatio: fundamentalData.currentRatio || null,
+          debtToEquity: fundamentalData.debtToEquity || null,
+          trailingEps: fundamentalData.trailingEps || null,
+          beta: fundamentalData.beta || null,
+          sector: fundamentalData.sector || getDefaultSector(yahooSymbol),
+          industry: fundamentalData.industry || getDefaultIndustry(yahooSymbol),
+          description: fundamentalData.description || null,
+          isEstimated: fundamentalData.isEstimated || false,
+          country: 'India',
+          symbol: yahooSymbol
+        };
+        console.log('Final processed info with enhanced financial data (fallback):', info);
+        return {
+          symbol: yahooSymbol,
+          info,
+          historicalData,
+          technicalIndicators
+        };
+      } catch (chartError) {
+        console.warn('Yahoo chart API failed, falling back to Yahoo quote API:', chartError);
+        // Try Yahoo quote API with .NS, .BO, and base symbol
+        for (const variant of symbolVariants) {
+          try {
+            const quoteUrl = `${YAHOO_QUOTE_API}?symbols=${variant}`;
+            const response = await fetch(`${CORS_PROXY}${encodeURIComponent(quoteUrl)}`);
+            if (!response.ok) {
+              throw new Error(`Yahoo Quote API error: ${response.status}`);
+            }
+            const data = await response.json();
+            if (!data.quoteResponse || !data.quoteResponse.result || data.quoteResponse.result.length === 0) {
+              throw new Error('No quote data available');
+            }
+            const quote = data.quoteResponse.result[0];
+            // Map Yahoo quote fields to StockInfo
+            const currentPrice = quote.regularMarketPrice || 0;
+            const previousClose = quote.regularMarketPreviousClose || 0;
+            const change = currentPrice - previousClose;
+            const changePercent = previousClose ? (change / previousClose) * 100 : 0;
+            const info: StockInfo = {
+              longName: quote.longName || quote.shortName || variant,
+              currentPrice,
+              regularMarketPrice: currentPrice,
+              regularMarketChange: change,
+              regularMarketChangePercent: changePercent,
+              regularMarketPreviousClose: previousClose,
+              regularMarketDayHigh: quote.regularMarketDayHigh || null,
+              regularMarketDayLow: quote.regularMarketDayLow || null,
+              regularMarketVolume: quote.regularMarketVolume || null,
+              country: quote.country || 'India',
+              symbol: variant,
+              marketCap: quote.marketCap || null,
+              trailingPE: quote.trailingPE || null,
+              priceToBook: quote.priceToBook || null,
+              dividendYield: quote.dividendYield || null,
+              returnOnEquity: quote.returnOnEquity || null,
+              currentRatio: quote.currentRatio || null,
+              debtToEquity: quote.debtToEquity || null,
+              trailingEps: quote.epsTrailingTwelveMonths || null,
+              beta: quote.beta || null,
+              sector: quote.sector || getDefaultSector(variant),
+              industry: quote.industry || getDefaultIndustry(variant),
+              description: quote.longBusinessSummary || null,
+              fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || null,
+              fiftyTwoWeekLow: quote.fiftyTwoWeekLow || null,
+              isEstimated: false
+            };
+            // No historical data or technical indicators from quote API
+            return {
+              symbol: variant,
+              info,
+              historicalData: [],
+              technicalIndicators: {
+                sma20: 0,
+                sma50: 0,
+                rsi: 50,
+                macd: { line: 0, signal: 0, histogram: 0 }
+              }
+            };
+          } catch (quoteError) {
+            console.warn(`Yahoo quote API failed for variant ${variant}:`, quoteError);
+            continue;
+          }
+        }
+        // If all variants fail
+        console.error('Yahoo quote API fallback failed for all symbol variants.');
+        return null;
+      }
     }
   } catch (error) {
     console.error('Error fetching stock data:', error);
