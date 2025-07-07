@@ -26,6 +26,7 @@ export default function StockSearch({ onStockSelect, placeholder = "Search for s
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,20 +43,24 @@ export default function StockSearch({ onStockSelect, placeholder = "Search for s
     if (!searchQuery.trim()) {
       setResults([]);
       setShowDropdown(false);
+      setErrorMessage(null);
       return;
     }
-
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       const response = await fetch(`/api/stocks/search?q=${encodeURIComponent(searchQuery)}`);
       if (response.ok) {
         const data = await response.json();
         setResults(data.slice(0, 10)); // Limit to 10 results
         setShowDropdown(true);
+      } else {
+        setErrorMessage('Could not search stocks. Please try again.');
       }
     } catch (error) {
       console.error('Search error:', error);
       setResults([]);
+      setErrorMessage('Could not search stocks. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +115,9 @@ export default function StockSearch({ onStockSelect, placeholder = "Search for s
             if (results.length > 0) setShowDropdown(true);
           }}
         />
+        {errorMessage && (
+          <div className="text-xs text-red-600 mt-1 px-2">{errorMessage}</div>
+        )}
         {isLoading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>

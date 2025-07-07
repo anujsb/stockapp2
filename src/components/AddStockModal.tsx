@@ -29,6 +29,7 @@ export default function AddStockModal({ isOpen, onClose, onStockAdded }: AddStoc
   const [avgPrice, setAvgPrice] = useState('');
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const resetForm = () => {
     setSelectedStock(null);
@@ -39,9 +40,10 @@ export default function AddStockModal({ isOpen, onClose, onStockAdded }: AddStoc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     if (!selectedStock || !quantity || !avgPrice) return;
     if (!user?.id) {
-      alert('You must be signed in to add stocks.');
+      setErrorMessage('You must be signed in to add stocks.');
       return;
     }
     setIsLoading(true);
@@ -72,9 +74,9 @@ export default function AddStockModal({ isOpen, onClose, onStockAdded }: AddStoc
       resetForm();
       onClose();
       onStockAdded();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding stock:', error);
-      alert('Failed to add stock to portfolio. Please try again.');
+      setErrorMessage(error.message || 'Failed to add stock to portfolio. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +98,11 @@ export default function AddStockModal({ isOpen, onClose, onStockAdded }: AddStoc
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {errorMessage && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-2 text-sm">
+              {errorMessage}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Search Stock

@@ -50,6 +50,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [marketOpen, setMarketOpen] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Auto-refresh every 10 minutes
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
 
   const fetchPortfolio = async () => {
     setIsFetching(true);
+    setErrorMessage(null);
     try {
       const response = await fetch('/api/portfolio/');
       if (response.ok) {
@@ -71,9 +73,12 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
         if (times.length > 0) {
           setLastUpdated(new Date(Math.max(...times.map((t: string) => new Date(t).getTime()))));
         }
+      } else {
+        setErrorMessage('Could not load portfolio. Please try again.');
       }
     } catch (error) {
       console.error('Error fetching portfolio:', error);
+      setErrorMessage('Could not load portfolio. Please try again.');
     } finally {
       setIsLoading(false);
       setMarketOpen(isIndianMarketOpen());
@@ -139,17 +144,19 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
     if (!confirm('Are you sure you want to remove this stock from your portfolio?')) {
       return;
     }
-
+    setErrorMessage(null);
     try {
       const response = await fetch(`/api/portfolio/?id=${id}`, {
         method: 'DELETE',
       });
-
       if (response.ok) {
         setPortfolio(portfolio.filter(item => item.id !== id));
+      } else {
+        setErrorMessage('Failed to remove stock. Please try again.');
       }
     } catch (error) {
       console.error('Error deleting portfolio item:', error);
+      setErrorMessage('Failed to remove stock. Please try again.');
     }
   };
 
@@ -172,6 +179,12 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
 
   return (
     <div className="space-y-6">
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded flex items-center justify-between text-sm">
+          <span>{errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} className="ml-4 text-red-400 hover:text-red-600">&times;</button>
+        </div>
+      )}
       {/* Last Updated and Market Status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
