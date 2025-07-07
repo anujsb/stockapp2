@@ -1,6 +1,7 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Calendar, Award, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TrendingUp, TrendingDown, Calendar, Award, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface NewsAndActionsProps {
@@ -8,6 +9,12 @@ interface NewsAndActionsProps {
 }
 
 export default function NewsAndActions({ stock }: NewsAndActionsProps) {
+  const [newsItems, setNewsItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const companyName = stock?.name || stock?.symbol;
+
   // Mock data for additional features
   const analystRatings = {
     buy: 12,
@@ -15,37 +22,6 @@ export default function NewsAndActions({ stock }: NewsAndActionsProps) {
     sell: 1,
     average: 4.2
   };
-
-  const newsItems = [
-    {
-      id: 1,
-      title: "Q4 Earnings Beat Expectations by 15%",
-      time: "2 hours ago",
-      type: "earnings",
-      sentiment: "positive"
-    },
-    {
-      id: 2,
-      title: "Board Announces 8% Dividend Increase",
-      time: "1 day ago",
-      type: "dividend",
-      sentiment: "positive"
-    },
-    {
-      id: 3,
-      title: "New Product Launch in Asian Markets",
-      time: "2 days ago",
-      type: "news",
-      sentiment: "neutral"
-    },
-    {
-      id: 4,
-      title: "Upcoming Stock Split Announcement",
-      time: "1 week ago",
-      type: "corporate",
-      sentiment: "positive"
-    }
-  ];
 
   const corporateActions = [
     {
@@ -61,6 +37,41 @@ export default function NewsAndActions({ stock }: NewsAndActionsProps) {
       status: "announced"
     }
   ];
+
+  useEffect(() => {
+    if (!stock?.symbol && !stock?.name) return;
+    setLoading(true);
+    setError(null);
+    const keywords = `${companyName} OR ${stock.symbol}`;
+    const newsQuery = `${keywords} earnings OR dividend OR split OR bonus OR results OR profit OR loss OR revenue`;
+    fetch(`/api/news?q=${encodeURIComponent(newsQuery)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.articles && data.articles.length > 0) {
+          setNewsItems(data.articles);
+          setLoading(false);
+        } else if (companyName !== stock.symbol) {
+          // Fallback: try just the company name
+          fetch(`/api/news?q=${encodeURIComponent(companyName)}`)
+            .then(res2 => res2.json())
+            .then(data2 => {
+              setNewsItems(data2.articles || []);
+              setLoading(false);
+            })
+            .catch(() => {
+              setError('Failed to load news');
+              setLoading(false);
+            });
+        } else {
+          setNewsItems([]);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        setError('Failed to load news');
+        setLoading(false);
+      });
+  }, [stock?.symbol, stock?.name]);
 
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
@@ -85,29 +96,30 @@ export default function NewsAndActions({ stock }: NewsAndActionsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {newsItems.map((news) => (
-                <div key={news.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {getSentimentIcon(news.sentiment)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2">{news.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-500">{news.time}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        news.type === 'earnings' ? 'bg-blue-100 text-blue-800' :
-                        news.type === 'dividend' ? 'bg-green-100 text-green-800' :
-                        news.type === 'corporate' ? 'bg-purple-100 text-purple-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {news.type}
-                      </span>
+            {loading ? (
+              <div className="flex items-center gap-2 text-gray-500"><Loader2 className="animate-spin" /> Loading news...</div>
+            ) : error ? (
+              <div className="text-red-500">{error}</div>
+            ) : newsItems.length === 0 ? (
+              <div className="text-gray-500">No recent news found for {companyName}.</div>
+            ) : (
+              <div className="space-y-3">
+                {newsItems.map((news, idx) => (
+                  <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getSentimentIcon(news.sentiment)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <a href={news.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-700 hover:underline line-clamp-2">{news.title}</a>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">{news.source?.name} &middot; {news.publishedAt ? new Date(news.publishedAt).toLocaleString() : ''}</span>
+                      </div>
+                      {news.description && <p className="text-xs text-gray-700 mt-1 line-clamp-2">{news.description}</p>}
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
