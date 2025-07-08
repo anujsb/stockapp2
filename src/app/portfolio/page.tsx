@@ -15,7 +15,7 @@ import AIAnalysis from '@/components/stock-ai-analysis/AIAnalysis';
 import Financials from '@/components/stock-financials/Financials';
 import Technicals from '@/components/stock-technicals/Technicals';
 import NewsAndActions from '@/components/stock-news-actions/NewsAndActions';
-import { calculateGainLoss, formatCurrency } from '@/lib/portfolio-utils';
+import { calculateGainLoss, formatCurrency } from '@/lib/utils/portfolio-utils';
 
 interface PortfolioStock {
   id: number;

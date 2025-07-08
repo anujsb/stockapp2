@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stocks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { fetchStockData } from '@/lib/stock-api';
+import { fetchStockData } from '@/lib/stock-details-api';
 import { cleanSymbol, extractExchangeFromSymbol } from '@/lib/trading-view-utils';
 
 // Fixed interface - should match Next.js 15 expectations

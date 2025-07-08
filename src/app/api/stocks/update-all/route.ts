@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stocks } from '@/lib/db/schema';
-import { fetchStockData } from '@/lib/stock-api';
+import { fetchStockData } from '@/lib/stock-details-api';
 import { eq } from 'drizzle-orm';
 
 // Helper: Check if Indian market is open (NSE/BSE: 09:15 to 15:30 IST)

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Trash2, TrendingUp, TrendingDown, Eye } from 'lucide-react';
-import { calculateGainLoss, formatCurrency } from '@/lib/portfolio-utils';
+import { calculateGainLoss, formatCurrency } from '@/lib/utils/portfolio-utils';
 
 interface Stock {
   id: number;
