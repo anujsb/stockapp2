@@ -3,7 +3,7 @@
 
 import { mapToYahooSymbol } from './trading-view-utils';
 
-// src/lib/alpha-vantage.ts
+// src/lib/stock-search-api.ts
 export interface StockQuote {
   symbol: string;
   name: string;
