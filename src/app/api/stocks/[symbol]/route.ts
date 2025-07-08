@@ -43,19 +43,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const dbStockData = {
         symbol: stockData.symbol,
         name: stockData.info.longName || stockData.symbol,
-        currentPrice: stockData.info.currentPrice.toString(),
-        previousClose: stockData.info.regularMarketPreviousClose.toString(),
-        dayChange: stockData.info.regularMarketChange.toString(),
-        dayChangePercent: stockData.info.regularMarketChangePercent.toString(),
-        volume: stockData.info.regularMarketVolume || null,
-        high52Week: stockData.info.fiftyTwoWeekHigh?.toString() || null,
-        low52Week: stockData.info.fiftyTwoWeekLow?.toString() || null,
-        peRatio: stockData.info.trailingPE?.toString() || null,
-        dividendYield: stockData.info.dividendYield?.toString() || null,
+        currentPrice: stockData.info.currentPrice != null ? String(stockData.info.currentPrice) : null,
+        previousClose: stockData.info.regularMarketPreviousClose != null ? String(stockData.info.regularMarketPreviousClose) : null,
+        dayChange: stockData.info.regularMarketChange != null ? String(stockData.info.regularMarketChange) : null,
+        dayChangePercent: stockData.info.regularMarketChangePercent != null ? String(stockData.info.regularMarketChangePercent) : null,
+        volume: stockData.info.regularMarketVolume != null ? Number(stockData.info.regularMarketVolume) : null,
+        high52Week: stockData.info.fiftyTwoWeekHigh != null ? String(stockData.info.fiftyTwoWeekHigh) : null,
+        low52Week: stockData.info.fiftyTwoWeekLow != null ? String(stockData.info.fiftyTwoWeekLow) : null,
+        peRatio: stockData.info.trailingPE != null ? String(stockData.info.trailingPE) : null,
+        dividendYield: stockData.info.dividendYield != null ? String(stockData.info.dividendYield) : null,
         sector: stockData.info.sector,
         industry: stockData.info.industry,
         exchange: 'NSE', // Default to NSE for Indian stocks
-        marketCap: stockData.info.marketCap || null,
+        marketCap: stockData.info.marketCap != null ? Number(stockData.info.marketCap) : null,
         currency: 'INR' // Set to INR for Indian stocks
       };
 
@@ -123,18 +123,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
         
         const updateData = {
           name: stockData.info.longName || stock[0].name,
-          currentPrice: stockData.info.currentPrice.toString(),
-          previousClose: stockData.info.regularMarketPreviousClose.toString(),
-          dayChange: stockData.info.regularMarketChange.toString(),
-          dayChangePercent: stockData.info.regularMarketChangePercent.toString(),
-          volume: stockData.info.regularMarketVolume || null,
-          high52Week: stockData.info.fiftyTwoWeekHigh?.toString() || null,
-          low52Week: stockData.info.fiftyTwoWeekLow?.toString() || null,
-          peRatio: stockData.info.trailingPE?.toString() || null,
-          dividendYield: stockData.info.dividendYield?.toString() || null,
+          currentPrice: stockData.info.currentPrice != null ? String(stockData.info.currentPrice) : null,
+          previousClose: stockData.info.regularMarketPreviousClose != null ? String(stockData.info.regularMarketPreviousClose) : null,
+          dayChange: stockData.info.regularMarketChange != null ? String(stockData.info.regularMarketChange) : null,
+          dayChangePercent: stockData.info.regularMarketChangePercent != null ? String(stockData.info.regularMarketChangePercent) : null,
+          volume: stockData.info.regularMarketVolume != null ? Number(stockData.info.regularMarketVolume) : null,
+          high52Week: stockData.info.fiftyTwoWeekHigh != null ? String(stockData.info.fiftyTwoWeekHigh) : null,
+          low52Week: stockData.info.fiftyTwoWeekLow != null ? String(stockData.info.fiftyTwoWeekLow) : null,
+          peRatio: stockData.info.trailingPE != null ? String(stockData.info.trailingPE) : null,
+          dividendYield: stockData.info.dividendYield != null ? String(stockData.info.dividendYield) : null,
           sector: stockData.info.sector || stock[0].sector,
           industry: stockData.info.industry || stock[0].industry,
-          marketCap: stockData.info.marketCap || stock[0].marketCap,
+          marketCap: stockData.info.marketCap != null ? Number(stockData.info.marketCap) : stock[0].marketCap,
           lastUpdated: new Date()
         };
 

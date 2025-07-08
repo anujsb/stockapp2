@@ -148,8 +148,9 @@ export default function PortfolioPage() {
       trailingEps: stock.eps || 0,
       beta: stock.beta || 1.0,
       description: stock.description || '',
-      fiftyTwoWeekHigh: stock.high52Week || stock.currentPrice * 1.15,
-      fiftyTwoWeekLow: stock.low52Week || stock.currentPrice * 0.85,
+      // Use DB fields for 52-week high/low, fallback to Yahoo fields if present
+      high52Week: stock.high52Week ?? stock.fiftyTwoWeekHigh ?? (stock.currentPrice ? stock.currentPrice * 1.15 : undefined),
+      low52Week: stock.low52Week ?? stock.fiftyTwoWeekLow ?? (stock.currentPrice ? stock.currentPrice * 0.85 : undefined),
       currency: stock.currency || 'INR',
       volume: stock.volume || 0,
       bookValue: stock.bookValue || 0,

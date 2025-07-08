@@ -8,34 +8,52 @@ interface FinancialsProps {
 }
 
 export default function Financials({ stock }: FinancialsProps) {
-  const formatMarketCap = (marketCap: number | null | undefined) => {
-    if (typeof marketCap !== 'number' || isNaN(marketCap)) return 'N/A';
-    if (marketCap >= 1e12) return `₹${(marketCap / 1e12).toFixed(2)}T`;
-    if (marketCap >= 1e9) return `₹${(marketCap / 1e9).toFixed(2)}B`;
-    if (marketCap >= 1e6) return `₹${(marketCap / 1e6).toFixed(2)}M`;
-    return `₹${marketCap.toFixed(0)}`;
+  // Format market cap using DB value
+  const formatMarketCap = (marketCap: number | string | null | undefined) => {
+    const num = typeof marketCap === 'string' ? Number(marketCap) : marketCap;
+    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+    if (num >= 1e12) return `₹${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `₹${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `₹${(num / 1e6).toFixed(2)}M`;
+    return `₹${num.toFixed(0)}`;
   };
 
-  // Use real Yahoo Finance data instead of mock data
+  // Format number with 2 decimals if present
+  const formatNumber = (val: number | string | null | undefined, decimals = 2) => {
+    const num = typeof val === 'string' ? Number(val) : val;
+    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+    return num.toFixed(decimals);
+  };
+
+  // Format percent (e.g. dividend yield)
+  const formatPercent = (val: number | string | null | undefined, decimals = 2) => {
+    const num = typeof val === 'string' ? Number(val) : val;
+    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+    return num.toFixed(decimals) + '%';
+  };
+
+  // Use DB fields directly, fallback to 'N/A' if missing
   const financialData = {
     sector: stock.sector || 'N/A',
     industry: stock.industry || 'N/A',
-    marketCap: stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A',
-    peRatio: stock.trailingPE && typeof stock.trailingPE === 'number' ? stock.trailingPE.toFixed(2) : 'N/A',
-    eps: stock.trailingEps && typeof stock.trailingEps === 'number' ? stock.trailingEps.toFixed(2) : 'N/A',
-    roe: stock.returnOnEquity && typeof stock.returnOnEquity === 'number' ? (stock.returnOnEquity * 100).toFixed(2) + '%' : 'N/A',
-    roce: stock.returnOnEquity && typeof stock.returnOnEquity === 'number' ? (stock.returnOnEquity * 100).toFixed(2) + '%' : 'N/A', // Using ROE as proxy
-    debtToEquity: stock.debtToEquity && typeof stock.debtToEquity === 'number' ? stock.debtToEquity.toFixed(2) : 'N/A',
-    bookValue: stock.bookValue && typeof stock.bookValue === 'number' ? stock.bookValue.toFixed(2) : 'N/A',
-    pbRatio: stock.priceToBook && typeof stock.priceToBook === 'number' ? stock.priceToBook.toFixed(2) : 'N/A',
-    dividendYield: stock.dividendYield && typeof stock.dividendYield === 'number' ? stock.dividendYield.toFixed(2) + '%' : 'N/A',
-    promoterHolding: 'N/A', // Not available from Yahoo Finance
-    institutionalHolding: 'N/A', // Not available from Yahoo Finance
-    insiderTrades: 'N/A', // Not available from Yahoo Finance
+    marketCap: formatMarketCap(stock.marketCap),
+    peRatio: formatNumber(stock.peRatio),
+    bookValue: formatNumber(stock.bookValue),
+    pbRatio: formatNumber(stock.priceToBook),
+    dividendYield: formatPercent(stock.dividendYield),
+    high52Week: formatNumber(stock.high52Week),
+    low52Week: formatNumber(stock.low52Week),
+    debtToEquity: formatNumber(stock.debtToEquity),
+    // The following are not in DB schema, so always N/A
+    roe: 'N/A',
+    roce: 'N/A',
+    promoterHolding: 'N/A',
+    institutionalHolding: 'N/A',
+    insiderTrades: 'N/A',
     valuationMetrics: {
-      pegRatio: stock.pegRatio && typeof stock.pegRatio === 'number' ? stock.pegRatio.toFixed(2) : 'N/A',
-      evEbitda: stock.enterpriseToEbitda && typeof stock.enterpriseToEbitda === 'number' ? stock.enterpriseToEbitda.toFixed(2) : 'N/A',
-      dcf: 'N/A' // Not available from Yahoo Finance
+      pegRatio: 'N/A',
+      evEbitda: 'N/A',
+      dcf: 'N/A'
     }
   };
 
@@ -55,13 +73,14 @@ export default function Financials({ stock }: FinancialsProps) {
             <Metric label="Industry" value={financialData.industry} />
             <Metric label="Market Cap" value={financialData.marketCap} />
             <Metric label="P/E Ratio" value={financialData.peRatio} />
-            <Metric label="EPS" value={financialData.eps} />
-            <Metric label="ROE" value={financialData.roe} />
-            <Metric label="ROCE" value={financialData.roce} />
-            <Metric label="Debt-to-Equity" value={financialData.debtToEquity} />
             <Metric label="Book Value" value={financialData.bookValue} />
             <Metric label="P/B Ratio" value={financialData.pbRatio} />
             <Metric label="Dividend Yield" value={financialData.dividendYield} />
+            <Metric label="52-Week High" value={financialData.high52Week} />
+            <Metric label="52-Week Low" value={financialData.low52Week} />
+            <Metric label="Debt-to-Equity" value={financialData.debtToEquity} />
+            <Metric label="ROE" value={financialData.roe} />
+            <Metric label="ROCE" value={financialData.roce} />
             <Metric label="Promoter Holding" value={financialData.promoterHolding} />
             <Metric label="Institutional Holding" value={financialData.institutionalHolding} />
             <Metric label="Insider Trades" value={financialData.insiderTrades} />

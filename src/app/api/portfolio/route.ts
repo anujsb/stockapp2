@@ -28,7 +28,14 @@ export async function GET(request: NextRequest) {
           sector: stocks.sector,
           industry: stocks.industry,
           exchange: stocks.exchange,
-          lastUpdated: stocks.lastUpdated
+          lastUpdated: stocks.lastUpdated,
+          marketCap: stocks.marketCap,
+          peRatio: stocks.peRatio,
+          dividendYield: stocks.dividendYield,
+          high52Week: stocks.high52Week,
+          low52Week: stocks.low52Week,
+          volume: stocks.volume,
+          currency: stocks.currency,
         }
       })
       .from(userPortfolio)

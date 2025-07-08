@@ -10,6 +10,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: DashboardProps) {
+  console.log('Stock in Dashboard:', stock);
   const gainLossData = calculateGainLoss(stock);
 
   const formatMarketCap = (marketCap: number | null | undefined) => {
@@ -35,13 +36,11 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
     sector: stock.sector || 'N/A',
     industry: stock.industry || 'N/A',
     exchange: stock.exchange || 'NSE',
-    marketCap: stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A',
-    peRatio: stock.trailingPE && typeof stock.trailingPE === 'number' ? stock.trailingPE.toFixed(2) : 'N/A',
-    dividendYield: stock.dividendYield && typeof stock.dividendYield === 'number' ? stock.dividendYield.toFixed(2) + '%' : 'N/A',
-    high52Week: stock.fiftyTwoWeekHigh ? formatCurrency(stock.fiftyTwoWeekHigh) : 'N/A',
-    low52Week: stock.fiftyTwoWeekLow ? formatCurrency(stock.fiftyTwoWeekLow) : 'N/A',
-    beta: stock.beta && typeof stock.beta === 'number' ? stock.beta.toFixed(2) : 'N/A',
-    eps: stock.trailingEps && typeof stock.trailingEps === 'number' ? stock.trailingEps.toFixed(2) : 'N/A',
+    marketCap: stock.marketCap && !isNaN(Number(stock.marketCap)) ? formatMarketCap(Number(stock.marketCap)) : 'N/A',
+    peRatio: stock.trailingPE && !isNaN(Number(stock.trailingPE)) ? Number(stock.trailingPE).toFixed(2) : 'N/A',
+    dividendYield: stock.dividendYield && !isNaN(Number(stock.dividendYield)) ? (Number(stock.dividendYield) * 100).toFixed(2) + '%' : 'N/A',
+    high52Week: stock.fiftyTwoWeekHigh && !isNaN(Number(stock.fiftyTwoWeekHigh)) ? formatCurrency(Number(stock.fiftyTwoWeekHigh)) : 'N/A',
+    low52Week: stock.fiftyTwoWeekLow && !isNaN(Number(stock.fiftyTwoWeekLow)) ? formatCurrency(Number(stock.fiftyTwoWeekLow)) : 'N/A',
     description: stock.description || 'No description available'
   };
 
@@ -150,10 +149,6 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
                   <span className="text-sm text-gray-600">Dividend Yield</span>
                   <span className="text-sm font-medium">{stockOverview.dividendYield}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Beta</span>
-                  <span className="text-sm font-medium">{stockOverview.beta}</span>
-                </div>
               </div>
             </div>
             
@@ -167,14 +162,6 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">52-Week Low</span>
                   <span className="text-sm font-medium text-red-600">{stockOverview.low52Week}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">EPS</span>
-                  <span className="text-sm font-medium">{stockOverview.eps}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Exchange</span>
-                  <span className="text-sm font-medium">{stockOverview.exchange}</span>
                 </div>
               </div>
             </div>
