@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Trash2, TrendingUp, TrendingDown, Eye } from 'lucide-react';
+import { calculateGainLoss, formatCurrency } from '@/lib/portfolio-utils';
 
 interface Stock {
   id: number;
@@ -90,38 +91,13 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
     fetchPortfolio();
   }, [refreshTrigger]);
 
-  const calculateGainLoss = (item: PortfolioItem) => {
-    const currentPrice = parseFloat(item.stock.currentPrice);
-    const avgPrice = parseFloat(item.avgPurchasePrice);
-    const quantity = parseFloat(item.quantity);
-    
-    const currentValue = currentPrice * quantity;
-    const investedValue = avgPrice * quantity;
-    const gainLoss = currentValue - investedValue;
-    const gainLossPercent = ((gainLoss / investedValue) * 100);
-    
-    return {
-      gainLoss,
-      gainLossPercent,
-      currentValue,
-      investedValue
-    };
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
-
   const totalPortfolioValue = portfolio.reduce((total, item) => {
-    const { currentValue } = calculateGainLoss(item);
+    const { currentValue } = calculateGainLoss({ currentPrice: parseFloat(item.stock.currentPrice), avgPurchasePrice: parseFloat(item.avgPurchasePrice), quantity: parseFloat(item.quantity) });
     return total + currentValue;
   }, 0);
 
   const totalInvested = portfolio.reduce((total, item) => {
-    const { investedValue } = calculateGainLoss(item);
+    const { investedValue } = calculateGainLoss({ currentPrice: parseFloat(item.stock.currentPrice), avgPurchasePrice: parseFloat(item.avgPurchasePrice), quantity: parseFloat(item.quantity) });
     return total + investedValue;
   }, 0);
 
@@ -257,7 +233,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {portfolio.map((item) => {
-                const { gainLoss, gainLossPercent, currentValue } = calculateGainLoss(item);
+                const { gainLoss, gainLossPercent, currentValue } = calculateGainLoss({ currentPrice: parseFloat(item.stock.currentPrice), avgPurchasePrice: parseFloat(item.avgPurchasePrice), quantity: parseFloat(item.quantity) });
                 const dayChange = parseFloat(item.stock.dayChange);
                 const dayChangePercent = parseFloat(item.stock.dayChangePercent);
                 
