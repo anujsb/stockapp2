@@ -143,6 +143,7 @@ export default function PortfolioPage() {
   };
 
   useEffect(() => {
+    if (portfolio.length === 0) return;
     // Function to update all stocks
     const updateAllStocks = async () => {
       try {
@@ -151,10 +152,10 @@ export default function PortfolioPage() {
         // Silently ignore errors
       }
     };
-    updateAllStocks(); // On mount
+    updateAllStocks(); // On mount if portfolio is not empty
     const interval = setInterval(updateAllStocks, 10 * 60 * 1000); // Every 10 minutes
     return () => clearInterval(interval);
-  }, []);
+  }, [portfolio.length]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -225,15 +226,10 @@ export default function PortfolioPage() {
                   <p className={`text-2xl font-bold ${portfolioSummary.totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(Math.abs(portfolioSummary.totalGainLoss))}
                   </p>
-                  <p className={`text-sm ${portfolioSummary.totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {portfolioSummary.totalGainLossPercent.toFixed(2)}%
-                  </p>
+                  <p className={`text-sm ${portfolioSummary.totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>{portfolioSummary.totalGainLossPercent.toFixed(2)}%</p>
                 </div>
                 <div className={`p-3 rounded-full ${portfolioSummary.totalGainLoss >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                  {portfolioSummary.totalGainLoss >= 0 ?
-                    <TrendingUp className="h-6 w-6 text-green-600" /> :
-                    <TrendingDown className="h-6 w-6 text-red-600" />
-                  }
+                  {portfolioSummary.totalGainLoss >= 0 ? <TrendingUp className="h-6 w-6 text-green-600" /> : <TrendingDown className="h-6 w-6 text-red-600" />}
                 </div>
               </div>
             </div>
@@ -241,9 +237,7 @@ export default function PortfolioPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Holdings</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {portfolio.length}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{portfolio.length}</p>
                   <p className="text-sm text-gray-500">Active positions</p>
                 </div>
                 <div className="p-3 bg-purple-50 rounded-full">
