@@ -53,11 +53,11 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
   const [isFetching, setIsFetching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Auto-refresh every 10 minutes
+  // Auto-refresh every 1 minute
   useEffect(() => {
     const interval = setInterval(() => {
       fetchPortfolio();
-    }, 10 * 60 * 1000); // 10 minutes
+    }, 1 * 60 * 1000); // 1 minute
     return () => clearInterval(interval);
   }, []);
 

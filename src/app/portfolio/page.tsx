@@ -61,6 +61,7 @@ export default function PortfolioPage() {
     totalGainLoss: 0,
     totalGainLossPercent: 0
   });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const handleStockAdded = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -199,6 +200,7 @@ export default function PortfolioPage() {
     const updateAllStocks = async () => {
       try {
         await fetch('/api/stocks/update-all', { method: 'POST' });
+        setLastUpdated(new Date());
       } catch (e) {
         // Silently ignore errors
       }
@@ -207,6 +209,13 @@ export default function PortfolioPage() {
     const interval = setInterval(updateAllStocks, 1 * 60 * 1000); // Every 1 minute
     return () => clearInterval(interval);
   }, [portfolio.length]);
+
+  // Real-time ticking for the "Last updated" display
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const tick = setInterval(() => setLastUpdated(new Date(lastUpdated)), 1000);
+    return () => clearInterval(tick);
+  }, [lastUpdated]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -243,6 +252,14 @@ export default function PortfolioPage() {
         </header>
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Last updated time */}
+          <div className="mb-2 text-right text-sm text-gray-500">
+            {lastUpdated && (
+              <span>
+                Last updated: {lastUpdated.toLocaleTimeString()} ({lastUpdated.toLocaleDateString()})
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
