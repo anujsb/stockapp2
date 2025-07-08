@@ -204,7 +204,7 @@ export default function PortfolioPage() {
       }
     };
     updateAllStocks(); // On mount if portfolio is not empty
-    const interval = setInterval(updateAllStocks, 10 * 60 * 1000); // Every 10 minutes
+    const interval = setInterval(updateAllStocks, 1 * 60 * 1000); // Every 1 minute
     return () => clearInterval(interval);
   }, [portfolio.length]);
 
