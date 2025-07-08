@@ -253,14 +253,14 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                       sector: item.stock.sector,
                       industry: item.stock.industry || '',
                       exchange: item.stock.exchange || '',
-                      marketCap: '0',
-                      pe: 0,
-                      dividend: 0,
-                      beta: 0,
-                      volume: '0',
-                      recommendation: 'HOLD',
-                      aiSummary: '',
-                      aiReason: ''
+                      marketCap: 'N/A',
+                      pe: 'N/A',
+                      dividend: 'N/A',
+                      beta: 'N/A',
+                      volume: 'N/A',
+                      recommendation: 'N/A',
+                      aiSummary: 'N/A',
+                      aiReason: 'N/A'
                     })}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -322,14 +322,14 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                               sector: item.stock.sector,
                               industry: item.stock.industry || '',
                               exchange: item.stock.exchange || '',
-                              marketCap: '0',
-                              pe: 0,
-                              dividend: 0,
-                              beta: 0,
-                              volume: '0',
-                              recommendation: 'HOLD',
-                              aiSummary: '',
-                              aiReason: ''
+                              marketCap: 'N/A',
+                              pe: 'N/A',
+                              dividend: 'N/A',
+                              beta: 'N/A',
+                              volume: 'N/A',
+                              recommendation: 'N/A',
+                              aiSummary: 'N/A',
+                              aiReason: 'N/A'
                             })
                           }}
                           className="text-blue-600 hover:text-blue-900 transition-colors"

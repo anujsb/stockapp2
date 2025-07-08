@@ -1,76 +1,55 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Star, AlertCircle, Calendar, Users, Award } from 'lucide-react';
+import { Users, TrendingUp, TrendingDown, AlertCircle, BarChart3, Target, DollarSign, PieChart } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface DashboardProps {
   stock: any;
   formatCurrency: (amount: number) => string;
-  calculateGainLoss: (stock: any) => any;
+  calculateGainLoss: (stock: any) => { gainLoss: number; gainLossPercent: number; currentValue: number; investedValue: number; };
 }
 
 export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: DashboardProps) {
   const gainLossData = calculateGainLoss(stock);
 
-  // Mock data for additional features
-  const analystRatings = {
-    buy: 12,
-    hold: 5,
-    sell: 1,
-    average: 4.2
+  const formatMarketCap = (marketCap: number | null | undefined) => {
+    if (typeof marketCap !== 'number' || isNaN(marketCap)) return 'N/A';
+    if (marketCap >= 1e12) return `₹${(marketCap / 1e12).toFixed(2)}T`;
+    if (marketCap >= 1e9) return `₹${(marketCap / 1e9).toFixed(2)}B`;
+    if (marketCap >= 1e6) return `₹${(marketCap / 1e6).toFixed(2)}M`;
+    return `₹${marketCap.toFixed(0)}`;
   };
 
-  const newsItems = [
-    {
-      id: 1,
-      title: "Q4 Earnings Beat Expectations by 15%",
-      time: "2 hours ago",
-      type: "earnings",
-      sentiment: "positive"
-    },
-    {
-      id: 2,
-      title: "Board Announces 8% Dividend Increase",
-      time: "1 day ago",
-      type: "dividend",
-      sentiment: "positive"
-    },
-    {
-      id: 3,
-      title: "New Product Launch in Asian Markets",
-      time: "2 days ago",
-      type: "news",
-      sentiment: "neutral"
-    },
-    {
-      id: 4,
-      title: "Upcoming Stock Split Announcement",
-      time: "1 week ago",
-      type: "corporate",
-      sentiment: "positive"
-    }
-  ];
+  // Analyst ratings - not available from Yahoo Finance
+  const analystRatings = {
+    buy: 'N/A',
+    hold: 'N/A',
+    sell: 'N/A',
+    average: 'N/A'
+  };
 
-  const corporateActions = [
-    {
-      type: "Dividend",
-      date: "2024-03-15",
-      amount: "$2.50",
-      status: "upcoming"
-    },
-    {
-      type: "Stock Split",
-      date: "2024-04-01",
-      ratio: "2:1",
-      status: "announced"
-    }
-  ];
+  // Use real data for stock overview
+  const stockOverview = {
+    name: stock.name || stock.longName || stock.symbol,
+    symbol: stock.symbol,
+    sector: stock.sector || 'N/A',
+    industry: stock.industry || 'N/A',
+    exchange: stock.exchange || 'NSE',
+    marketCap: stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A',
+    peRatio: stock.trailingPE && typeof stock.trailingPE === 'number' ? stock.trailingPE.toFixed(2) : 'N/A',
+    dividendYield: stock.dividendYield && typeof stock.dividendYield === 'number' ? stock.dividendYield.toFixed(2) + '%' : 'N/A',
+    high52Week: stock.fiftyTwoWeekHigh ? formatCurrency(stock.fiftyTwoWeekHigh) : 'N/A',
+    low52Week: stock.fiftyTwoWeekLow ? formatCurrency(stock.fiftyTwoWeekLow) : 'N/A',
+    beta: stock.beta && typeof stock.beta === 'number' ? stock.beta.toFixed(2) : 'N/A',
+    eps: stock.trailingEps && typeof stock.trailingEps === 'number' ? stock.trailingEps.toFixed(2) : 'N/A',
+    description: stock.description || 'No description available'
+  };
 
-  const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment) {
-      case 'positive':
+  const getRecommendationIcon = (rec: string) => {
+    switch (rec) {
+      case 'BUY':
         return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'negative':
+      case 'SELL':
         return <TrendingDown className="h-4 w-4 text-red-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
@@ -91,36 +70,31 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-gray-600 mb-1">Quantity Held</p>
-              <p className="text-lg font-bold text-gray-900">{stock.quantity.toLocaleString()}</p>
+              <p className="text-lg font-bold text-blue-600">{stock.quantity?.toLocaleString() || 'N/A'}</p>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">Avg Buy Price</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(stock.avgPurchasePrice)}</p>
+              <p className="text-xs text-gray-600 mb-1">Invested Value</p>
+              <p className="text-lg font-bold text-green-600">{formatCurrency(gainLossData.investedValue)}</p>
             </div>
             <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">Invested Value</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(gainLossData.investedValue)}</p>
+              <p className="text-xs text-gray-600 mb-1">Current Value</p>
+              <p className="text-lg font-bold text-purple-600">{formatCurrency(gainLossData.currentValue)}</p>
             </div>
-            <div className="text-center p-3 bg-indigo-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">Current Price</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(stock.currentPrice)}</p>
-              <div className={`text-xs flex items-center justify-center gap-1 mt-1 ${stock.dayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {stock.dayChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {Math.abs(stock.dayChangePercent).toFixed(2)}%
-              </div>
-            </div>
-            <div className="text-center p-3 bg-yellow-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">Unrealized P&L</p>
+            <div className="text-center p-3 bg-orange-50 rounded-lg">
+              <p className="text-xs text-gray-600 mb-1">Gain/Loss</p>
               <p className={`text-lg font-bold ${gainLossData.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {formatCurrency(Math.abs(gainLossData.gainLoss))}
               </p>
-              <p className={`text-xs ${gainLossData.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ({gainLossData.gainLossPercent.toFixed(2)}%)
+            </div>
+            <div className="text-center p-3 bg-indigo-50 rounded-lg">
+              <p className="text-xs text-gray-600 mb-1">Gain/Loss %</p>
+              <p className={`text-lg font-bold ${gainLossData.gainLossPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {gainLossData.gainLossPercent.toFixed(2)}%
               </p>
             </div>
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">Annualized Return</p>
-              <p className={`text-lg font-bold ${gainLossData.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="text-center p-3 bg-yellow-50 rounded-lg">
+              <p className="text-xs text-gray-600 mb-1">Est. Yearly Return</p>
+              <p className="text-lg font-bold text-yellow-600">
                 {(gainLossData.gainLossPercent * 1.2).toFixed(2)}%
               </p>
               <p className="text-xs text-gray-500">Est. yearly</p>
@@ -143,20 +117,20 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
               <h4 className="font-semibold text-gray-900 mb-3">Basic Info</h4>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Name</span>
-                  <span className="text-sm font-medium">{stock.name}</span>
+                  <span className="text-sm text-gray-600">Company</span>
+                  <span className="text-sm font-medium">{stockOverview.name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Ticker</span>
-                  <span className="text-sm font-medium">{stock.symbol}</span>
+                  <span className="text-sm font-medium">{stockOverview.symbol}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Sector</span>
-                  <span className="text-sm font-medium">{stock.sector}</span>
+                  <span className="text-sm font-medium">{stockOverview.sector}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Industry</span>
-                  <span className="text-sm font-medium">{stock.industry}</span>
+                  <span className="text-sm font-medium">{stockOverview.industry}</span>
                 </div>
               </div>
             </div>
@@ -166,64 +140,84 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Market Cap</span>
-                  <span className="text-sm font-medium">{stock.marketCap}</span>
+                  <span className="text-sm font-medium">{stockOverview.marketCap}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">52W High</span>
-                  <span className="text-sm font-medium">{formatCurrency(stock.currentPrice * 1.15)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">52W Low</span>
-                  <span className="text-sm font-medium">{formatCurrency(stock.currentPrice * 0.75)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Volume</span>
-                  <span className="text-sm font-medium">{stock.volume}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Valuation</h4>
-              <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">P/E Ratio</span>
-                  <span className="text-sm font-medium">{stock.pe}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Beta</span>
-                  <span className="text-sm font-medium">{stock.beta}</span>
+                  <span className="text-sm font-medium">{stockOverview.peRatio}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Dividend Yield</span>
-                  <span className="text-sm font-medium">{stock.dividend}%</span>
+                  <span className="text-sm font-medium">{stockOverview.dividendYield}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Book Value</span>
-                  <span className="text-sm font-medium">{formatCurrency(stock.currentPrice * 0.8)}</span>
+                  <span className="text-sm text-gray-600">Beta</span>
+                  <span className="text-sm font-medium">{stockOverview.beta}</span>
                 </div>
               </div>
             </div>
-
+            
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Actions</h4>
+              <h4 className="font-semibold text-gray-900 mb-3">Price Range</h4>
               <div className="space-y-2">
-                <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors">
-                  <Star className="h-4 w-4 text-yellow-600" />
-                  <span className="text-sm font-medium text-yellow-800">Add to Watchlist</span>
-                </button>
-                <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
-                  <AlertCircle className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">Set Price Alert</span>
-                </button>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">52-Week High</span>
+                  <span className="text-sm font-medium text-green-600">{stockOverview.high52Week}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">52-Week Low</span>
+                  <span className="text-sm font-medium text-red-600">{stockOverview.low52Week}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">EPS</span>
+                  <span className="text-sm font-medium">{stockOverview.eps}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Exchange</span>
+                  <span className="text-sm font-medium">{stockOverview.exchange}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Analyst Ratings</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Buy</span>
+                  <span className="text-sm font-medium text-green-600">{analystRatings.buy}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Hold</span>
+                  <span className="text-sm font-medium text-yellow-600">{analystRatings.hold}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Sell</span>
+                  <span className="text-sm font-medium text-red-600">{analystRatings.sell}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Avg Rating</span>
+                  <span className="text-sm font-medium">{analystRatings.average}</span>
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* News & Events */}
-      
+      {/* Company Description */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            Company Description
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-700 leading-relaxed">
+            {stockOverview.description}
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

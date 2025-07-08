@@ -26,11 +26,28 @@ export function calculateGainLoss(stock: PortfolioStockLike): GainLossResult {
   };
 }
 
-// Formats a number as currency (INR by default)
-export function formatCurrency(amount: number, options?: Intl.NumberFormatOptions): string {
-  return new Intl.NumberFormat('en-IN', {
-    minimumFractionDigits: 2,
+// Currency formatting options
+export interface FormatCurrencyOptions {
+  currency?: string;
+  locale?: string;
+  minimumFractionDigits?: number;
+  maximumFractionDigits?: number;
+}
+
+// Format currency with Indian Rupee as default
+export function formatCurrency(amount: number, options?: FormatCurrencyOptions): string {
+  const defaultOptions: FormatCurrencyOptions = {
+    currency: 'INR',
+    locale: 'en-IN',
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-    ...options,
+    ...options
+  };
+
+  return new Intl.NumberFormat(defaultOptions.locale!, {
+    style: 'currency',
+    currency: defaultOptions.currency!,
+    minimumFractionDigits: defaultOptions.minimumFractionDigits,
+    maximumFractionDigits: defaultOptions.maximumFractionDigits,
   }).format(amount);
 } 

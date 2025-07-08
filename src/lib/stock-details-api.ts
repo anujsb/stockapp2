@@ -59,6 +59,15 @@ export interface StockInfo {
   fiftyTwoWeekHigh?: number | null;
   fiftyTwoWeekLow?: number | null;
   isEstimated?: boolean;
+  // Additional fields for UI components
+  exchange?: string | null;
+  currency?: string | null;
+  // For technical indicators
+  volume?: number | null;
+  // For financial calculations
+  bookValue?: number | null;
+  pegRatio?: number | null;
+  enterpriseToEbitda?: number | null;
 }
 
 export interface HistoricalDataPoint {
@@ -185,6 +194,15 @@ export const fetchStockData = async (symbol: string): Promise<StockData | null> 
         country: 'India',
         symbol: formattedSymbol,
         ...fundamentalData,
+        // Additional fields for UI components
+        exchange: chartMeta.exchange || null,
+        currency: chartMeta.currency || null,
+        // For technical indicators
+        volume: chartMeta.regularMarketVolume || null,
+        // For financial calculations
+        bookValue: chartMeta.bookValue || null,
+        pegRatio: chartMeta.pegRatio || null,
+        enterpriseToEbitda: chartMeta.enterpriseToEbitda || null,
       };
       console.log('Final processed info with Alpha Vantage data:', info);
       return {
@@ -243,7 +261,16 @@ export const fetchStockData = async (symbol: string): Promise<StockData | null> 
           description: fundamentalData.description || null,
           isEstimated: fundamentalData.isEstimated || false,
           country: 'India',
-          symbol: yahooSymbol
+          symbol: yahooSymbol,
+          // Additional fields for UI components
+          exchange: chartMeta.exchange || null,
+          currency: chartMeta.currency || null,
+          // For technical indicators
+          volume: chartMeta.regularMarketVolume || null,
+          // For financial calculations
+          bookValue: chartMeta.bookValue || null,
+          pegRatio: chartMeta.pegRatio || null,
+          enterpriseToEbitda: chartMeta.enterpriseToEbitda || null,
         };
         console.log('Final processed info with enhanced financial data (fallback):', info);
         return {
@@ -298,7 +325,16 @@ export const fetchStockData = async (symbol: string): Promise<StockData | null> 
               description: quote.longBusinessSummary || null,
               fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || null,
               fiftyTwoWeekLow: quote.fiftyTwoWeekLow || null,
-              isEstimated: false
+              isEstimated: false,
+              // Additional fields for UI components
+              exchange: quote.exchange || null,
+              currency: quote.currency || null,
+              // For technical indicators
+              volume: quote.regularMarketVolume || null,
+              // For financial calculations
+              bookValue: quote.bookValue || null,
+              pegRatio: quote.pegRatio || null,
+              enterpriseToEbitda: quote.enterpriseToEbitda || null,
             };
             // No historical data or technical indicators from quote API
             return {
@@ -346,12 +382,12 @@ const fetchYahooQuoteData = async (symbol: string): Promise<FundamentalData> => 
     
     const quote = data.quoteResponse.result[0];
     
-    // Extract real financial data from Yahoo quote
+    // Extract all available financial data from Yahoo Finance quote
     return {
       marketCap: quote.marketCap || null,
-      trailingPE: quote.trailingPE || null,
+      trailingPE: quote.trailingPE || quote.forwardPE || null,
       priceToBook: quote.priceToBook || null,
-      dividendYield: quote.dividendYield || null,
+      dividendYield: quote.dividendYield ? quote.dividendYield * 100 : null, // Convert to percentage
       returnOnEquity: quote.returnOnEquity || null,
       currentRatio: quote.currentRatio || null,
       debtToEquity: quote.debtToEquity || null,
@@ -362,7 +398,7 @@ const fetchYahooQuoteData = async (symbol: string): Promise<FundamentalData> => 
       description: quote.longBusinessSummary || null,
       fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || null,
       fiftyTwoWeekLow: quote.fiftyTwoWeekLow || null,
-      isEstimated: false // This is real data
+      isEstimated: false // This is real data from Yahoo Finance
     };
   } catch (error) {
     console.error('Yahoo Quote API error:', error);

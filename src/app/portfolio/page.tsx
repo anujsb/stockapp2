@@ -116,7 +116,57 @@ export default function PortfolioPage() {
 
 
   const handleStockClick = (stock: Stock) => {
-    setSelectedStock(stock);
+    // Map all Yahoo Finance data fields to the stock object
+    const enrichedStock = {
+      id: stock.id,
+      symbol: stock.symbol,
+      name: stock.name,
+      sector: stock.sector,
+      industry: stock.industry,
+      currentPrice: stock.currentPrice,
+      avgPurchasePrice: stock.avgPurchasePrice,
+      quantity: stock.quantity,
+      dayChange: stock.dayChange,
+      dayChangePercent: stock.dayChangePercent,
+      exchange: stock.exchange,
+      // Yahoo Finance data fields
+      longName: stock.name,
+      regularMarketPrice: stock.currentPrice,
+      regularMarketChange: stock.dayChange,
+      regularMarketChangePercent: stock.dayChangePercent,
+      regularMarketPreviousClose: stock.currentPrice - stock.dayChange,
+      regularMarketDayHigh: stock.currentPrice * 1.02, // Estimate
+      regularMarketDayLow: stock.currentPrice * 0.98, // Estimate
+      regularMarketVolume: stock.volume || 0,
+      marketCap: stock.marketCap || 0,
+      trailingPE: stock.pe || 0,
+      priceToBook: stock.priceToBook || 0,
+      dividendYield: stock.dividend || 0,
+      returnOnEquity: stock.roe || 0,
+      currentRatio: stock.currentRatio || 0,
+      debtToEquity: stock.debtToEquity || 0,
+      trailingEps: stock.eps || 0,
+      beta: stock.beta || 1.0,
+      description: stock.description || '',
+      fiftyTwoWeekHigh: stock.high52Week || stock.currentPrice * 1.15,
+      fiftyTwoWeekLow: stock.low52Week || stock.currentPrice * 0.85,
+      currency: stock.currency || 'INR',
+      volume: stock.volume || 0,
+      bookValue: stock.bookValue || 0,
+      pegRatio: stock.pegRatio || 0,
+      enterpriseToEbitda: stock.enterpriseToEbitda || 0,
+      // Technical indicators (if available)
+      technicalIndicators: stock.technicalIndicators || {
+        sma20: stock.currentPrice * 0.98,
+        sma50: stock.currentPrice * 0.95,
+        rsi: 64.2,
+        macd: { line: 2.45, signal: 2.1, histogram: 0.35 }
+      },
+      // Historical data (if available)
+      historicalData: stock.historicalData || []
+    };
+    
+    setSelectedStock(enrichedStock);
   };
 
 

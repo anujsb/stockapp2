@@ -28,36 +28,23 @@ export default function NewsAndActions({ stock }: NewsAndActionsProps) {
   const industry = stock?.industry;
   const similarStocks = industry && SIMILAR_STOCKS_MAP[industry] ? SIMILAR_STOCKS_MAP[industry].filter(s => s !== companyName) : [];
 
-  // Mock data for additional features
+  // Analyst ratings - not available from Yahoo Finance
   const analystRatings = {
-    buy: 12,
-    hold: 5,
-    sell: 1,
-    average: 4.2
+    buy: 'N/A',
+    hold: 'N/A',
+    sell: 'N/A',
+    average: 'N/A'
   };
 
-  // Mock corporate actions data
+  // Corporate actions - not available from Yahoo Finance
   const corporateActions = [
     {
-      type: "Dividend",
-      date: "2024-03-15",
-      amount: "₹2.50",
-      status: "upcoming",
-      description: "Interim dividend declared"
-    },
-    {
-      type: "Stock Split",
-      date: "2024-04-01",
-      ratio: "2:1",
-      status: "announced",
-      description: "Board approved stock split"
-    },
-    {
-      type: "AGM",
-      date: "2024-08-15",
-      amount: "Annual General Meeting",
-      status: "scheduled",
-      description: "Virtual AGM to be held"
+      type: "No corporate actions available",
+      date: "N/A",
+      amount: "N/A",
+      status: "N/A",
+      description: "Corporate action data not available from Yahoo Finance",
+      ratio: "N/A"
     }
   ];
 

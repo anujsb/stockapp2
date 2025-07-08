@@ -8,26 +8,34 @@ interface FinancialsProps {
 }
 
 export default function Financials({ stock }: FinancialsProps) {
-  // Mock financial data
+  const formatMarketCap = (marketCap: number | null | undefined) => {
+    if (typeof marketCap !== 'number' || isNaN(marketCap)) return 'N/A';
+    if (marketCap >= 1e12) return `₹${(marketCap / 1e12).toFixed(2)}T`;
+    if (marketCap >= 1e9) return `₹${(marketCap / 1e9).toFixed(2)}B`;
+    if (marketCap >= 1e6) return `₹${(marketCap / 1e6).toFixed(2)}M`;
+    return `₹${marketCap.toFixed(0)}`;
+  };
+
+  // Use real Yahoo Finance data instead of mock data
   const financialData = {
-    sector: stock.sector,
-    industry: stock.industry,
-    marketCap: stock.marketCap,
-    peRatio: stock.pe,
-    eps: '5.73', // Example EPS
-    roe: '27%',
-    roce: '18%',
-    debtToEquity: '0.25',
-    bookValue: '23.34',
-    pbRatio: '3.45',
-    dividendYield: stock.dividend.toFixed(2),
-    promoterHolding: '45%',
-    institutionalHolding: '35%',
-    insiderTrades: '2',
+    sector: stock.sector || 'N/A',
+    industry: stock.industry || 'N/A',
+    marketCap: stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A',
+    peRatio: stock.trailingPE && typeof stock.trailingPE === 'number' ? stock.trailingPE.toFixed(2) : 'N/A',
+    eps: stock.trailingEps && typeof stock.trailingEps === 'number' ? stock.trailingEps.toFixed(2) : 'N/A',
+    roe: stock.returnOnEquity && typeof stock.returnOnEquity === 'number' ? (stock.returnOnEquity * 100).toFixed(2) + '%' : 'N/A',
+    roce: stock.returnOnEquity && typeof stock.returnOnEquity === 'number' ? (stock.returnOnEquity * 100).toFixed(2) + '%' : 'N/A', // Using ROE as proxy
+    debtToEquity: stock.debtToEquity && typeof stock.debtToEquity === 'number' ? stock.debtToEquity.toFixed(2) : 'N/A',
+    bookValue: stock.bookValue && typeof stock.bookValue === 'number' ? stock.bookValue.toFixed(2) : 'N/A',
+    pbRatio: stock.priceToBook && typeof stock.priceToBook === 'number' ? stock.priceToBook.toFixed(2) : 'N/A',
+    dividendYield: stock.dividendYield && typeof stock.dividendYield === 'number' ? stock.dividendYield.toFixed(2) + '%' : 'N/A',
+    promoterHolding: 'N/A', // Not available from Yahoo Finance
+    institutionalHolding: 'N/A', // Not available from Yahoo Finance
+    insiderTrades: 'N/A', // Not available from Yahoo Finance
     valuationMetrics: {
-      pegRatio: '1.15',
-      evEbitda: '7.8',
-      dcf: '15.2'
+      pegRatio: stock.pegRatio && typeof stock.pegRatio === 'number' ? stock.pegRatio.toFixed(2) : 'N/A',
+      evEbitda: stock.enterpriseToEbitda && typeof stock.enterpriseToEbitda === 'number' ? stock.enterpriseToEbitda.toFixed(2) : 'N/A',
+      dcf: 'N/A' // Not available from Yahoo Finance
     }
   };
 
@@ -53,7 +61,7 @@ export default function Financials({ stock }: FinancialsProps) {
             <Metric label="Debt-to-Equity" value={financialData.debtToEquity} />
             <Metric label="Book Value" value={financialData.bookValue} />
             <Metric label="P/B Ratio" value={financialData.pbRatio} />
-            <Metric label="Dividend Yield" value={financialData.dividendYield + '%'} />
+            <Metric label="Dividend Yield" value={financialData.dividendYield} />
             <Metric label="Promoter Holding" value={financialData.promoterHolding} />
             <Metric label="Institutional Holding" value={financialData.institutionalHolding} />
             <Metric label="Insider Trades" value={financialData.insiderTrades} />
@@ -78,7 +86,7 @@ export default function Financials({ stock }: FinancialsProps) {
         </CardContent>
       </Card>
 
-      {/* Financial Statements */}
+      {/* Financial Statements - Not available from Yahoo Finance quote API */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
@@ -92,24 +100,24 @@ export default function Financials({ stock }: FinancialsProps) {
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Profit & Loss (TTM)
+                Profit & Loss
               </h4>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-green-700">Revenue</span>
-                  <span className="text-sm font-medium text-green-800">$394.3B</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-green-700">Gross Profit</span>
-                  <span className="text-sm font-medium text-green-800">$169.1B</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-green-700">Operating Income</span>
-                  <span className="text-sm font-medium text-green-800">$114.3B</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-green-700">Net Income</span>
-                  <span className="text-sm font-medium text-green-800">$99.8B</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
               </div>
             </div>
@@ -123,19 +131,19 @@ export default function Financials({ stock }: FinancialsProps) {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-blue-700">Total Assets</span>
-                  <span className="text-sm font-medium text-blue-800">$352.8B</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-blue-700">Total Liabilities</span>
-                  <span className="text-sm font-medium text-blue-800">$290.4B</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-blue-700">Shareholders' Equity</span>
-                  <span className="text-sm font-medium text-blue-800">$62.4B</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-blue-700">Total Debt</span>
-                  <span className="text-sm font-medium text-blue-800">$104.6B</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
               </div>
             </div>
@@ -149,19 +157,19 @@ export default function Financials({ stock }: FinancialsProps) {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-purple-700">Operating Cash Flow</span>
-                  <span className="text-sm font-medium text-purple-800">$104.0B</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-purple-700">Free Cash Flow</span>
-                  <span className="text-sm font-medium text-purple-800">$99.6B</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-purple-700">Investing Cash Flow</span>
-                  <span className="text-sm font-medium text-purple-800">-$4.4B</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-purple-700">Financing Cash Flow</span>
-                  <span className="text-sm font-medium text-purple-800">-$93.4B</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
               </div>
             </div>
@@ -179,8 +187,8 @@ interface MetricProps {
 
 function Metric({ label, value }: MetricProps) {
   return (
-    <div className="text-center p-4 bg-gray-50 rounded-lg">
-      <p className="text-sm text-gray-600">{label}</p>
+    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <p className="text-sm font-medium text-gray-600 mb-1">{label}</p>
       <p className="text-lg font-bold text-gray-900">{value}</p>
     </div>
   );
