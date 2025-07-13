@@ -2,8 +2,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, TrendingUp, TrendingDown, Eye } from 'lucide-react';
+import { Trash2, TrendingUp, TrendingDown, Eye, AlertCircle, Clock } from 'lucide-react';
 import { calculateGainLoss, formatCurrency } from '@/lib/utils/portfolio-utils';
+import { 
+  calculateGainLossRobust, 
+  getStockDisplayName, 
+  getStockStatusRobust,
+  formatCurrencyRobust,
+  formatPercentageRobust,
+  safeParseFloat,
+  safeParseString
+} from '@/lib/utils/robust-data-utils';
+import { formatLastUpdated, getDataFreshnessLevel, getFreshnessColor } from '@/lib/utils/time-utils';
 
 interface Stock {
   id: number;
@@ -15,6 +25,34 @@ interface Stock {
   sector: string;
   industry: string;
   exchange?: string;
+  // Enhanced fields from new schema
+  longName?: string;
+  bid?: string;
+  ask?: string;
+  marketCap?: string;
+  volume?: string;
+  peRatio?: string;
+  dividendYield?: string;
+  high52Week?: string;
+  low52Week?: string;
+  // Technical indicators
+  sma20?: string;
+  sma50?: string;
+  rsi?: string;
+  // Financial ratios
+  beta?: string;
+  // Analyst ratings
+  analystRecommendation?: string;
+  analystBuyCount?: string;
+  analystHoldCount?: string;
+  analystSellCount?: string;
+  analystTargetPrice?: string;
+  // Timestamps
+  lastUpdated?: string;
+  lastRealTimeUpdate?: string;
+  lastDailyUpdate?: string;
+  lastWeeklyUpdate?: string;
+  lastQuarterlyUpdate?: string;
 }
 
 interface PortfolioItem {
@@ -69,10 +107,14 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
       if (response.ok) {
         const data = await response.json();
         setPortfolio(data);
-        // Find the most recent lastUpdated
+        // Find the most recent lastUpdated from stock data
         const times = data.map((item: any) => item.stock.lastUpdated).filter(Boolean);
         if (times.length > 0) {
-          setLastUpdated(new Date(Math.max(...times.map((t: string) => new Date(t).getTime()))));
+          const mostRecentTime = new Date(Math.max(...times.map((t: string) => new Date(t).getTime())));
+          setLastUpdated(mostRecentTime);
+        } else {
+          // If no lastUpdated found, use current time
+          setLastUpdated(new Date());
         }
       } else {
         setErrorMessage('Could not load portfolio. Please try again.');
@@ -92,12 +134,20 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
   }, [refreshTrigger]);
 
   const totalPortfolioValue = portfolio.reduce((total, item) => {
-    const { currentValue } = calculateGainLoss({ currentPrice: parseFloat(item.stock.currentPrice), avgPurchasePrice: parseFloat(item.avgPurchasePrice), quantity: parseFloat(item.quantity) });
+    const { currentValue } = calculateGainLossRobust({
+      currentPrice: item.stock.currentPrice,
+      avgPurchasePrice: item.avgPurchasePrice,
+      quantity: item.quantity
+    });
     return total + currentValue;
   }, 0);
 
   const totalInvested = portfolio.reduce((total, item) => {
-    const { investedValue } = calculateGainLoss({ currentPrice: parseFloat(item.stock.currentPrice), avgPurchasePrice: parseFloat(item.avgPurchasePrice), quantity: parseFloat(item.quantity) });
+    const { investedValue } = calculateGainLossRobust({
+      currentPrice: item.stock.currentPrice,
+      avgPurchasePrice: item.avgPurchasePrice,
+      quantity: item.quantity
+    });
     return total + investedValue;
   }, 0);
 
@@ -161,12 +211,14 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
           <button onClick={() => setErrorMessage(null)} className="ml-4 text-red-400 hover:text-red-600">&times;</button>
         </div>
       )}
+      
       {/* Last Updated and Market Status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {lastUpdated && (
             <div className="text-xs text-gray-500 flex items-center gap-1">
-              Last updated: {lastUpdated.toLocaleString('en-IN', { hour12: true })}
+              <Clock className="h-3 w-3" />
+              Last updated: {formatLastUpdated(lastUpdated)}
               {isFetching && (
                 <span className="animate-spin inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full ml-1"></span>
               )}
@@ -174,21 +226,25 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
           )}
         </div>
         {!marketOpen && (
-          <div className="text-xs text-red-600 font-semibold">Indian stock market is closed. Showing last close price.</div>
+          <div className="text-xs text-red-600 font-semibold flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Indian stock market is closed. Showing last close price.
+          </div>
         )}
       </div>
+      
       {/* Portfolio Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-sm text-gray-600">Total Value</div>
           <div className="text-2xl font-bold text-gray-900">
-            {formatCurrency(totalPortfolioValue)}
+            {formatCurrencyRobust(totalPortfolioValue)}
           </div>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-sm text-gray-600">Total Invested</div>
           <div className="text-2xl font-bold text-gray-900">
-            {formatCurrency(totalInvested)}
+            {formatCurrencyRobust(totalInvested)}
           </div>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -197,7 +253,7 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
             totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'
           }`}>
             {totalGainLoss >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-            {formatCurrency(Math.abs(totalGainLoss))} ({totalGainLossPercent.toFixed(2)}%)
+            {formatCurrencyRobust(Math.abs(totalGainLoss))} ({totalGainLossPercent.toFixed(2)}%)
           </div>
         </div>
       </div>
@@ -233,9 +289,15 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {portfolio.map((item) => {
-                const { gainLoss, gainLossPercent, currentValue } = calculateGainLoss({ currentPrice: parseFloat(item.stock.currentPrice), avgPurchasePrice: parseFloat(item.avgPurchasePrice), quantity: parseFloat(item.quantity) });
-                const dayChange = parseFloat(item.stock.dayChange);
-                const dayChangePercent = parseFloat(item.stock.dayChangePercent);
+                const { gainLoss, gainLossPercent, currentValue } = calculateGainLossRobust({
+                  currentPrice: item.stock.currentPrice,
+                  avgPurchasePrice: item.avgPurchasePrice,
+                  quantity: item.quantity
+                });
+                
+                const dayChange = safeParseFloat(item.stock.dayChange, 0);
+                const dayChangePercent = safeParseFloat(item.stock.dayChangePercent, 0);
+                const stockStatus = getStockStatusRobust(item.stock);
                 
                 return (
                   <tr 
@@ -244,60 +306,86 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                     onClick={() => onStockClick && onStockClick({
                       id: item.stock.id,
                       symbol: item.stock.symbol,
-                      name: item.stock.name,
-                      quantity: parseFloat(item.quantity),
-                      avgPurchasePrice: parseFloat(item.avgPurchasePrice),
-                      currentPrice: parseFloat(item.stock.currentPrice),
-                      dayChange: parseFloat(item.stock.dayChange),
-                      dayChangePercent: parseFloat(item.stock.dayChangePercent),
-                      sector: item.stock.sector,
-                      industry: item.stock.industry || '',
-                      exchange: item.stock.exchange || '',
-                      marketCap: 'N/A',
-                      pe: 'N/A',
-                      dividend: 'N/A',
-                      beta: 'N/A',
-                      volume: 'N/A',
-                      recommendation: 'N/A',
+                      name: getStockDisplayName(item.stock),
+                      quantity: safeParseFloat(item.quantity, 0),
+                      avgPurchasePrice: safeParseFloat(item.avgPurchasePrice, 0),
+                      currentPrice: safeParseFloat(item.stock.currentPrice, 0),
+                      dayChange: dayChange,
+                      dayChangePercent: dayChangePercent,
+                      sector: safeParseString(item.stock.sector, 'Diversified'),
+                      industry: safeParseString(item.stock.industry, 'Diversified'),
+                      exchange: safeParseString(item.stock.exchange, 'NSE'),
+                      marketCap: item.stock.marketCap || 'N/A',
+                      pe: item.stock.peRatio || 'N/A',
+                      dividend: item.stock.dividendYield || 'N/A',
+                      beta: item.stock.beta || 'N/A',
+                      volume: item.stock.volume || 'N/A',
+                      recommendation: item.stock.analystRecommendation || 'N/A',
                       aiSummary: 'N/A',
-                      aiReason: 'N/A'
+                      aiReason: 'N/A',
+                      // Enhanced data
+                      longName: item.stock.longName,
+                      bid: item.stock.bid,
+                      ask: item.stock.ask,
+                      high52Week: item.stock.high52Week,
+                      low52Week: item.stock.low52Week,
+                      sma20: item.stock.sma20,
+                      sma50: item.stock.sma50,
+                      rsi: item.stock.rsi,
+                      analystBuyCount: item.stock.analystBuyCount,
+                      analystHoldCount: item.stock.analystHoldCount,
+                      analystSellCount: item.stock.analystSellCount,
+                      analystTargetPrice: item.stock.analystTargetPrice,
+                      lastUpdated: item.stock.lastUpdated,
+                      lastRealTimeUpdate: item.stock.lastRealTimeUpdate,
+                      isMarketOpen: stockStatus.isMarketOpen,
+                      dataFreshness: stockStatus.dataFreshness
                     })}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="font-medium text-gray-900">{item.stock.symbol}</div>
-                        <div className="text-sm text-gray-500">{item.stock.name}</div>
-                        {item.stock.sector && (
-                          <div className="text-xs text-gray-400">{item.stock.sector}</div>
-                        )}
+                        <div className="text-sm text-gray-500">{getStockDisplayName(item.stock)}</div>
+                        <div className="text-xs text-gray-400 flex items-center gap-1">
+                          {safeParseString(item.stock.sector, 'Diversified')}
+                          {item.stock.sector && item.stock.industry && ' • '}
+                          {safeParseString(item.stock.industry, '')}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {parseFloat(item.quantity).toLocaleString()}
+                      {safeParseFloat(item.quantity, 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(parseFloat(item.avgPurchasePrice))}
+                      {formatCurrencyRobust(item.avgPurchasePrice)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {formatCurrency(parseFloat(item.stock.currentPrice))}
+                        {formatCurrencyRobust(item.stock.currentPrice)}
                       </div>
                       <div className={`text-xs flex items-center gap-1 ${
                         dayChange >= 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {dayChange >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {Math.abs(dayChange).toFixed(2)} ({Math.abs(dayChangePercent).toFixed(2)}%)
+                        {formatCurrencyRobust(Math.abs(dayChange))} ({formatPercentageRobust(Math.abs(dayChangePercent))})
+                      </div>
+                      {/* Data freshness indicator */}
+                      <div className="text-xs text-gray-400 mt-1">
+                        {stockStatus.dataFreshness === 'real-time' && <span className="text-green-600">● Live</span>}
+                        {stockStatus.dataFreshness === 'recent' && <span className="text-yellow-600">● Recent</span>}
+                        {stockStatus.dataFreshness === 'stale' && <span className="text-red-600">● Stale</span>}
+                        {stockStatus.dataFreshness === 'unknown' && <span className="text-gray-600">● Unknown</span>}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(currentValue)}
+                      {formatCurrencyRobust(currentValue)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm font-medium flex items-center gap-1 ${
                         gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {gainLoss >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        {formatCurrency(Math.abs(gainLoss))}
+                        {formatCurrencyRobust(Math.abs(gainLoss))}
                       </div>
                       <div className={`text-xs ${
                         gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
@@ -313,23 +401,40 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
                             onStockClick && onStockClick({
                               id: item.stock.id,
                               symbol: item.stock.symbol,
-                              name: item.stock.name,
-                              quantity: parseFloat(item.quantity),
-                              avgPurchasePrice: parseFloat(item.avgPurchasePrice),
-                              currentPrice: parseFloat(item.stock.currentPrice),
-                              dayChange: parseFloat(item.stock.dayChange),
-                              dayChangePercent: parseFloat(item.stock.dayChangePercent),
-                              sector: item.stock.sector,
-                              industry: item.stock.industry || '',
-                              exchange: item.stock.exchange || '',
-                              marketCap: 'N/A',
-                              pe: 'N/A',
-                              dividend: 'N/A',
-                              beta: 'N/A',
-                              volume: 'N/A',
-                              recommendation: 'N/A',
+                              name: getStockDisplayName(item.stock),
+                              quantity: safeParseFloat(item.quantity, 0),
+                              avgPurchasePrice: safeParseFloat(item.avgPurchasePrice, 0),
+                              currentPrice: safeParseFloat(item.stock.currentPrice, 0),
+                              dayChange: dayChange,
+                              dayChangePercent: dayChangePercent,
+                              sector: safeParseString(item.stock.sector, 'Diversified'),
+                              industry: safeParseString(item.stock.industry, 'Diversified'),
+                              exchange: safeParseString(item.stock.exchange, 'NSE'),
+                              marketCap: item.stock.marketCap || 'N/A',
+                              pe: item.stock.peRatio || 'N/A',
+                              dividend: item.stock.dividendYield || 'N/A',
+                              beta: item.stock.beta || 'N/A',
+                              volume: item.stock.volume || 'N/A',
+                              recommendation: item.stock.analystRecommendation || 'N/A',
                               aiSummary: 'N/A',
-                              aiReason: 'N/A'
+                              aiReason: 'N/A',
+                              // Enhanced data
+                              longName: item.stock.longName,
+                              bid: item.stock.bid,
+                              ask: item.stock.ask,
+                              high52Week: item.stock.high52Week,
+                              low52Week: item.stock.low52Week,
+                              sma20: item.stock.sma20,
+                              sma50: item.stock.sma50,
+                              rsi: item.stock.rsi,
+                              analystBuyCount: item.stock.analystBuyCount,
+                              analystHoldCount: item.stock.analystHoldCount,
+                              analystSellCount: item.stock.analystSellCount,
+                              analystTargetPrice: item.stock.analystTargetPrice,
+                              lastUpdated: item.stock.lastUpdated,
+                              lastRealTimeUpdate: item.stock.lastRealTimeUpdate,
+                              isMarketOpen: stockStatus.isMarketOpen,
+                              dataFreshness: stockStatus.dataFreshness
                             })
                           }}
                           className="text-blue-600 hover:text-blue-900 transition-colors"

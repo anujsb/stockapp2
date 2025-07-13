@@ -1,7 +1,14 @@
 'use client';
 
-import { Activity, TrendingUp, TrendingDown, BarChart3, Target, Zap, Shield } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, BarChart3, Target, Zap, Shield, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { 
+  formatCurrencyRobust,
+  formatVolumeRobust,
+  safeParseFloat,
+  safeParseString,
+  getStockOverviewRobust
+} from '@/lib/utils/robust-data-utils';
 
 interface TechnicalsProps {
   stock: any;
@@ -9,13 +16,8 @@ interface TechnicalsProps {
 }
 
 export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
-  const formatVolume = (volume: number | null | undefined) => {
-    if (typeof volume !== 'number' || isNaN(volume)) return 'N/A';
-    if (volume >= 1e9) return `${(volume / 1e9).toFixed(1)}B`;
-    if (volume >= 1e6) return `${(volume / 1e6).toFixed(1)}M`;
-    if (volume >= 1e3) return `${(volume / 1e3).toFixed(1)}K`;
-    return volume.toFixed(0);
-  };
+  // Use robust data handling
+  const stockOverview = getStockOverviewRobust(stock);
 
   // Calculate proper technical indicators from available data
   const calculateBollingerBands = (currentPrice: number, historicalData: any[]) => {
@@ -56,7 +58,7 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
   const calculateVolumeMetrics = (currentVolume: number | null, historicalData: any[]) => {
     if (!historicalData || historicalData.length === 0) {
       return {
-        current: currentVolume ? formatVolume(currentVolume) : 'N/A',
+        current: currentVolume ? formatVolumeRobust(currentVolume) : 'N/A',
         average: 'N/A',
         relative: 'N/A'
       };
@@ -65,7 +67,7 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
     const volumes = historicalData.map(d => d.volume).filter(v => v && v > 0);
     if (volumes.length === 0) {
       return {
-        current: currentVolume ? formatVolume(currentVolume) : 'N/A',
+        current: currentVolume ? formatVolumeRobust(currentVolume) : 'N/A',
         average: 'N/A',
         relative: 'N/A'
       };
@@ -75,8 +77,8 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
     const relativeVolume = currentVolume && avgVolume > 0 ? currentVolume / avgVolume : null;
 
     return {
-      current: currentVolume ? formatVolume(currentVolume) : 'N/A',
-      average: formatVolume(avgVolume),
+      current: currentVolume ? formatVolumeRobust(currentVolume) : 'N/A',
+      average: formatVolumeRobust(avgVolume),
       relative: relativeVolume ? relativeVolume.toFixed(2) : 'N/A'
     };
   };
@@ -116,32 +118,34 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
     }
   };
 
-  // Use real technical data from Yahoo Finance historical data
+  // Enhanced technical data with robust handling
+  const currentPrice = safeParseFloat(stock.currentPrice, 0);
   const technicalData = {
-    rsi: typeof stock.technicalIndicators?.rsi === 'number' ? stock.technicalIndicators.rsi : 'N/A',
+    rsi: safeParseFloat(stock.rsi, 0),
     macd: {
-      value: typeof stock.technicalIndicators?.macd?.line === 'number' ? stock.technicalIndicators.macd.line : 'N/A',
-      signal: typeof stock.technicalIndicators?.macd?.line === 'number' && typeof stock.technicalIndicators?.macd?.signal === 'number' 
-        ? (stock.technicalIndicators.macd.line > stock.technicalIndicators.macd.signal ? 'Bullish' : 'Bearish')
-        : 'N/A'
+      line: safeParseFloat(stock.macdLine, 0),
+      signal: safeParseFloat(stock.macdSignal, 0),
+      histogram: safeParseFloat(stock.macdHistogram, 0),
+      trend: safeParseFloat(stock.macdLine, 0) > safeParseFloat(stock.macdSignal, 0) ? 'Bullish' : 'Bearish'
     },
     movingAverages: {
-      sma20: typeof stock.technicalIndicators?.sma20 === 'number' ? stock.technicalIndicators.sma20 : 'N/A',
-      sma50: typeof stock.technicalIndicators?.sma50 === 'number' ? stock.technicalIndicators.sma50 : 'N/A',
-      sma200: typeof stock.technicalIndicators?.sma200 === 'number' ? stock.technicalIndicators.sma200 : 'N/A',
-      ema20: typeof stock.technicalIndicators?.ema20 === 'number' ? stock.technicalIndicators.ema20 : 'N/A',
-      ema50: typeof stock.technicalIndicators?.ema50 === 'number' ? stock.technicalIndicators.ema50 : 'N/A'
+      sma20: safeParseFloat(stock.sma20, 0),
+      sma50: safeParseFloat(stock.sma50, 0),
+      sma200: safeParseFloat(stock.sma200, 0),
+      ema20: safeParseFloat(stock.ema20, 0),
+      ema50: safeParseFloat(stock.ema50, 0)
     },
-    bollingerBands: calculateBollingerBands(stock.currentPrice, stock.historicalData),
-    volume: calculateVolumeMetrics(stock.volume, stock.historicalData),
+    bollingerBands: calculateBollingerBands(currentPrice, stock.historicalData || []),
+    volume: calculateVolumeMetrics(safeParseFloat(stock.volume, 0), stock.historicalData || []),
     supportResistance: {
-      resistance1: stock.fiftyTwoWeekHigh ? stock.fiftyTwoWeekHigh * 0.95 : stock.currentPrice * 1.08,
-      resistance2: stock.fiftyTwoWeekHigh || stock.currentPrice * 1.15,
-      support1: stock.fiftyTwoWeekLow ? stock.fiftyTwoWeekLow * 1.05 : stock.currentPrice * 0.92,
-      support2: stock.fiftyTwoWeekLow || stock.currentPrice * 0.85
+      resistance1: safeParseFloat(stock.resistanceLevel1, currentPrice * 1.08),
+      resistance2: safeParseFloat(stock.resistanceLevel2, currentPrice * 1.15),
+      support1: safeParseFloat(stock.supportLevel1, currentPrice * 0.92),
+      support2: safeParseFloat(stock.supportLevel2, currentPrice * 0.85)
     },
-    beta: typeof stock.beta === 'number' ? stock.beta : 'N/A',
-    momentum: calculateMomentum(stock.historicalData, stock.currentPrice)
+    atr: safeParseFloat(stock.atr, 0),
+    beta: stockOverview.financial.beta,
+    momentum: calculateMomentum(stock.historicalData || [], currentPrice)
   };
 
   const getIndicatorColor = (value: number | string, type: 'rsi' | 'relative_volume') => {
@@ -178,6 +182,17 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
 
   return (
     <div className="space-y-6">
+      {/* Data Availability Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <span className="text-sm font-medium text-blue-800">Technical Data Availability</span>
+        </div>
+        <p className="text-sm text-blue-700">
+          Technical indicators are calculated from available price data. Some indicators may show 'N/A' if insufficient historical data is available.
+        </p>
+      </div>
+
       {/* Key Technical Indicators */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
@@ -190,27 +205,38 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className={`text-center p-4 rounded-lg border ${getIndicatorColor(technicalData.rsi, 'rsi')}`}>
               <p className="text-sm font-medium mb-1">RSI (14)</p>
-              <p className="text-xl font-bold">{typeof technicalData.rsi === 'number' ? technicalData.rsi.toFixed(1) : technicalData.rsi}</p>
+              <p className="text-xl font-bold">
+                {technicalData.rsi > 0 ? technicalData.rsi.toFixed(1) : 'N/A'}
+              </p>
               <p className="text-xs">
-                {typeof technicalData.rsi === 'number' ? (technicalData.rsi > 70 ? 'Overbought' : technicalData.rsi < 30 ? 'Oversold' : 'Neutral') : 'N/A'}
+                {technicalData.rsi > 0 ? 
+                  (technicalData.rsi > 70 ? 'Overbought' : technicalData.rsi < 30 ? 'Oversold' : 'Neutral') : 'N/A'}
               </p>
             </div>
             
             <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm font-medium mb-1 text-blue-700">MACD</p>
-              <p className="text-xl font-bold text-blue-700">{typeof technicalData.macd.value === 'number' ? technicalData.macd.value.toFixed(2) : technicalData.macd.value}</p>
-              <p className="text-xs text-blue-600">{technicalData.macd.signal}</p>
+              <p className="text-xl font-bold text-blue-800">
+                {technicalData.macd.line > 0 ? technicalData.macd.line.toFixed(2) : 'N/A'}
+              </p>
+              <p className="text-xs text-blue-600">
+                {technicalData.macd.trend}
+              </p>
             </div>
-            
-            <div className="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-              <p className="text-sm font-medium mb-1 text-indigo-700">Beta</p>
-              <p className="text-xl font-bold text-indigo-700">{typeof technicalData.beta === 'number' ? technicalData.beta.toFixed(2) : technicalData.beta}</p>
-              <p className="text-xs text-indigo-600">vs Market</p>
+
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm font-medium mb-1 text-green-700">Beta</p>
+              <p className="text-xl font-bold text-green-800">{technicalData.beta}</p>
+              <p className="text-xs text-green-600">
+                {technicalData.beta !== 'N/A' ? 
+                  (parseFloat(technicalData.beta) > 1 ? 'High Volatility' : 'Low Volatility') : 'N/A'}
+              </p>
             </div>
-            
+
             <div className={`text-center p-4 rounded-lg border ${getMomentumColor(technicalData.momentum)}`}>
               <p className="text-sm font-medium mb-1">Momentum</p>
-              <p className="text-sm font-bold">{technicalData.momentum}</p>
+              <p className="text-xl font-bold">{technicalData.momentum}</p>
+              <p className="text-xs">10-day trend</p>
             </div>
           </div>
         </CardContent>
@@ -220,144 +246,196 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
+            <BarChart3 className="h-5 w-5 text-indigo-600" />
             Moving Averages
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="space-y-3">
+            <MovingAverageRow 
+              period="SMA 20" 
+              value={technicalData.movingAverages.sma20 > 0 ? formatCurrencyRobust(technicalData.movingAverages.sma20) : 'N/A'} 
+              currentPrice={currentPrice} 
+              maValue={technicalData.movingAverages.sma20} 
+            />
+            <MovingAverageRow 
+              period="SMA 50" 
+              value={technicalData.movingAverages.sma50 > 0 ? formatCurrencyRobust(technicalData.movingAverages.sma50) : 'N/A'} 
+              currentPrice={currentPrice} 
+              maValue={technicalData.movingAverages.sma50} 
+            />
+            <MovingAverageRow 
+              period="SMA 200" 
+              value={technicalData.movingAverages.sma200 > 0 ? formatCurrencyRobust(technicalData.movingAverages.sma200) : 'N/A'} 
+              currentPrice={currentPrice} 
+              maValue={technicalData.movingAverages.sma200} 
+            />
+            <MovingAverageRow 
+              period="EMA 20" 
+              value={technicalData.movingAverages.ema20 > 0 ? formatCurrencyRobust(technicalData.movingAverages.ema20) : 'N/A'} 
+              currentPrice={currentPrice} 
+              maValue={technicalData.movingAverages.ema20} 
+            />
+            <MovingAverageRow 
+              period="EMA 50" 
+              value={technicalData.movingAverages.ema50 > 0 ? formatCurrencyRobust(technicalData.movingAverages.ema50) : 'N/A'} 
+              currentPrice={currentPrice} 
+              maValue={technicalData.movingAverages.ema50} 
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Support & Resistance */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-red-600" />
+            Support & Resistance Levels
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Simple Moving Averages (SMA)</h4>
-              <div className="space-y-3">
-                <MovingAverageRow 
-                  period="20-Day SMA" 
-                  value={typeof technicalData.movingAverages.sma20 === 'number' ? formatCurrency(technicalData.movingAverages.sma20) : 'N/A'} 
-                  currentPrice={stock.currentPrice}
-                  maValue={typeof technicalData.movingAverages.sma20 === 'number' ? technicalData.movingAverages.sma20 : 0}
-                />
-                <MovingAverageRow 
-                  period="50-Day SMA" 
-                  value={typeof technicalData.movingAverages.sma50 === 'number' ? formatCurrency(technicalData.movingAverages.sma50) : 'N/A'} 
-                  currentPrice={stock.currentPrice}
-                  maValue={typeof technicalData.movingAverages.sma50 === 'number' ? technicalData.movingAverages.sma50 : 0}
-                />
-                <MovingAverageRow 
-                  period="200-Day SMA" 
-                  value={typeof technicalData.movingAverages.sma200 === 'number' ? formatCurrency(technicalData.movingAverages.sma200) : 'N/A'} 
-                  currentPrice={stock.currentPrice}
-                  maValue={typeof technicalData.movingAverages.sma200 === 'number' ? technicalData.movingAverages.sma200 : 0}
-                />
+            <div className="space-y-3">
+              <h4 className="font-semibold text-red-700 mb-3">Resistance Levels</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-2 bg-red-50 rounded-lg">
+                  <span className="text-sm text-red-700">R1</span>
+                  <span className="text-sm font-bold text-red-800">
+                    {formatCurrencyRobust(technicalData.supportResistance.resistance1)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-red-50 rounded-lg">
+                  <span className="text-sm text-red-700">R2</span>
+                  <span className="text-sm font-bold text-red-800">
+                    {formatCurrencyRobust(technicalData.supportResistance.resistance2)}
+                  </span>
+                </div>
               </div>
             </div>
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Exponential Moving Averages (EMA)</h4>
-              <div className="space-y-3">
-                <MovingAverageRow 
-                  period="20-Day EMA" 
-                  value={typeof technicalData.movingAverages.ema20 === 'number' ? formatCurrency(technicalData.movingAverages.ema20) : 'N/A'} 
-                  currentPrice={stock.currentPrice}
-                  maValue={typeof technicalData.movingAverages.ema20 === 'number' ? technicalData.movingAverages.ema20 : 0}
-                />
-                <MovingAverageRow 
-                  period="50-Day EMA" 
-                  value={typeof technicalData.movingAverages.ema50 === 'number' ? formatCurrency(technicalData.movingAverages.ema50) : 'N/A'} 
-                  currentPrice={stock.currentPrice}
-                  maValue={typeof technicalData.movingAverages.ema50 === 'number' ? technicalData.movingAverages.ema50 : 0}
-                />
+            
+            <div className="space-y-3">
+              <h4 className="font-semibold text-green-700 mb-3">Support Levels</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-green-700">S1</span>
+                  <span className="text-sm font-bold text-green-800">
+                    {formatCurrencyRobust(technicalData.supportResistance.support1)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-green-700">S2</span>
+                  <span className="text-sm font-bold text-green-800">
+                    {formatCurrencyRobust(technicalData.supportResistance.support2)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Bollinger Bands & Volume Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-green-600" />
-              Bollinger Bands
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
-                <span className="text-sm font-medium text-red-700">Upper Band</span>
-                <span className="text-sm font-bold text-red-700">{formatCurrency(technicalData.bollingerBands.upper)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-sm font-medium text-gray-700">Middle Band</span>
-                <span className="text-sm font-bold text-gray-700">{formatCurrency(technicalData.bollingerBands.middle)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
-                <span className="text-sm font-medium text-green-700">Lower Band</span>
-                <span className="text-sm font-bold text-green-700">{formatCurrency(technicalData.bollingerBands.lower)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-orange-600" />
-              Volume Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <span className="text-sm font-medium text-blue-700">Current Volume</span>
-                <span className="text-sm font-bold text-blue-700">{technicalData.volume.current}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-sm font-medium text-gray-700">Average Volume</span>
-                <span className="text-sm font-bold text-gray-700">{technicalData.volume.average}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg border border-purple-200">
-                <span className="text-sm font-medium text-purple-700">Relative Volume</span>
-                <span className="text-sm font-bold text-purple-700">{technicalData.volume.relative}x</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Support & Resistance Levels */}
+      {/* Volume Analysis */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-red-600" />
-            Support & Resistance Levels
+            <Zap className="h-5 w-5 text-yellow-600" />
+            Volume Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3 text-red-600">Resistance Levels</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
-                  <span className="text-sm font-medium text-red-700">R1</span>
-                  <span className="text-sm font-bold text-red-700">{formatCurrency(technicalData.supportResistance.resistance1)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
-                  <span className="text-sm font-medium text-red-700">R2</span>
-                  <span className="text-sm font-bold text-red-700">{formatCurrency(technicalData.supportResistance.resistance2)}</span>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-blue-700 mb-1">Current Volume</p>
+              <p className="text-xl font-bold text-blue-800">{technicalData.volume.current}</p>
             </div>
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3 text-green-600">Support Levels</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
-                  <span className="text-sm font-medium text-green-700">S1</span>
-                  <span className="text-sm font-bold text-green-700">{formatCurrency(technicalData.supportResistance.support1)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
-                  <span className="text-sm font-medium text-green-700">S2</span>
-                  <span className="text-sm font-bold text-green-700">{formatCurrency(technicalData.supportResistance.support2)}</span>
-                </div>
-              </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm font-medium text-green-700 mb-1">Average Volume</p>
+              <p className="text-xl font-bold text-green-800">{technicalData.volume.average}</p>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <p className="text-sm font-medium text-purple-700 mb-1">Relative Volume</p>
+              <p className="text-xl font-bold text-purple-800">{technicalData.volume.relative}</p>
+              <p className="text-xs text-purple-600">
+                {technicalData.volume.relative !== 'N/A' ? 
+                  (parseFloat(technicalData.volume.relative) > 1.5 ? 'High' : 
+                   parseFloat(technicalData.volume.relative) < 0.5 ? 'Low' : 'Normal') : 'N/A'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bollinger Bands */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-indigo-600" />
+            Bollinger Bands
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm font-medium text-red-700 mb-1">Upper Band</p>
+              <p className="text-xl font-bold text-red-800">
+                {formatCurrencyRobust(technicalData.bollingerBands.upper)}
+              </p>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-blue-700 mb-1">Middle Band (SMA)</p>
+              <p className="text-xl font-bold text-blue-800">
+                {formatCurrencyRobust(technicalData.bollingerBands.middle)}
+              </p>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm font-medium text-green-700 mb-1">Lower Band</p>
+              <p className="text-xl font-bold text-green-800">
+                {formatCurrencyRobust(technicalData.bollingerBands.lower)}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">
+              <strong>Current Position:</strong> {currentPrice > technicalData.bollingerBands.upper ? 'Above Upper Band (Overbought)' :
+                                                currentPrice < technicalData.bollingerBands.lower ? 'Below Lower Band (Oversold)' :
+                                                'Within Bands (Normal)'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Additional Technical Metrics */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-purple-600" />
+            Additional Technical Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm text-gray-600">ATR</span>
+              <span className="text-sm font-medium text-gray-900">
+                {technicalData.atr > 0 ? formatCurrencyRobust(technicalData.atr) : 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm text-gray-600">MACD Signal</span>
+              <span className="text-sm font-medium text-gray-900">
+                {technicalData.macd.signal > 0 ? formatCurrencyRobust(technicalData.macd.signal) : 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm text-gray-600">MACD Histogram</span>
+              <span className="text-sm font-medium text-gray-900">
+                {technicalData.macd.histogram !== 0 ? formatCurrencyRobust(technicalData.macd.histogram) : 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm text-gray-600">Volatility (Beta)</span>
+              <span className="text-sm font-medium text-gray-900">{technicalData.beta}</span>
             </div>
           </div>
         </CardContent>
