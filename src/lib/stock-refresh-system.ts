@@ -76,7 +76,7 @@ export async function refreshRealTimeData(symbol: string): Promise<boolean> {
   const stock = await db.select().from(stocks).where(eq(stocks.symbol, symbol)).limit(1);
   
   if (stock.length === 0) {
-    await logRefreshAttempt(0, 'realtime', 'failed', [], 'Stock not found in database');
+    await logRefreshAttempt(0, 'realtime', 'failed', [], `Stock not found in database for symbol: ${symbol}`);
     return false;
   }
   
@@ -85,10 +85,13 @@ export async function refreshRealTimeData(symbol: string): Promise<boolean> {
   try {
     // 1. Current Price, Bid, Ask, Previous Close
     const quoteResponse = await fetch(`${YAHOO_QUOTE_API}?symbols=${symbol}`);
+    if (!quoteResponse.ok) {
+      throw new Error(`API error: ${quoteResponse.status} ${quoteResponse.statusText} for symbol: ${symbol}`);
+    }
     const quoteData = await quoteResponse.json();
     
     if (!quoteData.quoteSummary?.result?.[0]) {
-      throw new Error('No quote data available');
+      throw new Error(`No quote data available for symbol: ${symbol}`);
     }
     
     const quote = quoteData.quoteSummary.result[0];
@@ -173,7 +176,16 @@ export async function refreshRealTimeData(symbol: string): Promise<boolean> {
     
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    await logRefreshAttempt(stockId, 'realtime', 'failed', [], error.message, YAHOO_QUOTE_API, responseTime);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await logRefreshAttempt(
+      stockId,
+      'realtime',
+      'failed',
+      [],
+      errorMsg,
+      YAHOO_QUOTE_API,
+      responseTime
+    );
     console.error(`Real-time refresh failed for ${symbol}:`, error);
     return false;
   }
@@ -185,7 +197,7 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
   const stock = await db.select().from(stocks).where(eq(stocks.symbol, symbol)).limit(1);
   
   if (stock.length === 0) {
-    await logRefreshAttempt(0, 'daily', 'failed', [], 'Stock not found in database');
+    await logRefreshAttempt(0, 'daily', 'failed', [], `Stock not found in database for symbol: ${symbol}`);
     return false;
   }
   
@@ -197,6 +209,9 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
     // 1. Market Cap, Shares Outstanding, Float, Currency, Exchange
     const quoteResponse = await fetch(`${YAHOO_QUOTE_API}?symbols=${symbol}`);
+    if (!quoteResponse.ok) {
+      throw new Error(`API error: ${quoteResponse.status} ${quoteResponse.statusText} for symbol: ${symbol}`);
+    }
     const quoteData = await quoteResponse.json();
     
     if (quoteData.quoteSummary?.result?.[0]) {
@@ -225,6 +240,9 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
     // 2. Sector, Industry, Full Company Name, Long Exchange Name
     const summaryResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=price,summaryDetail`);
+    if (!summaryResponse.ok) {
+      throw new Error(`API error: ${summaryResponse.status} ${summaryResponse.statusText} for symbol: ${symbol}`);
+    }
     const summaryData = await summaryResponse.json();
     
     if (summaryData.quoteSummary?.result?.[0]) {
@@ -248,6 +266,9 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
     // 3. P/E, P/B, P/S, EV/EBITDA, PEG, Book Value, Dividend Yield
     const statsResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=defaultKeyStatistics,summaryDetail`);
+    if (!statsResponse.ok) {
+      throw new Error(`API error: ${statsResponse.status} ${statsResponse.statusText} for symbol: ${symbol}`);
+    }
     const statsData = await statsResponse.json();
     
     if (statsData.quoteSummary?.result?.[0]) {
@@ -296,6 +317,9 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
     // 4. Financial Health Data
     const financialResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=financialData`);
+    if (!financialResponse.ok) {
+      throw new Error(`API error: ${financialResponse.status} ${financialResponse.statusText} for symbol: ${symbol}`);
+    }
     const financialData = await financialResponse.json();
     
     if (financialData.quoteSummary?.result?.[0]?.financialData) {
@@ -349,6 +373,9 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
     // 5. Calendar Events (Dividends, Splits)
     const calendarResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=calendarEvents`);
+    if (!calendarResponse.ok) {
+      throw new Error(`API error: ${calendarResponse.status} ${calendarResponse.statusText} for symbol: ${symbol}`);
+    }
     const calendarData = await calendarResponse.json();
     
     if (calendarData.quoteSummary?.result?.[0]?.calendarEvents) {
@@ -367,6 +394,9 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
     // 6. Analyst Ratings
     const recommendationResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=recommendationTrend`);
+    if (!recommendationResponse.ok) {
+      throw new Error(`API error: ${recommendationResponse.status} ${recommendationResponse.statusText} for symbol: ${symbol}`);
+    }
     const recommendationData = await recommendationResponse.json();
     
     if (recommendationData.quoteSummary?.result?.[0]?.recommendationTrend) {
@@ -384,6 +414,9 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
     // 7. Daily OHLC & Volume history (1 month)
     const chartResponse = await fetch(`${YAHOO_CHART_API}/${symbol}?range=1mo&interval=1d`);
+    if (!chartResponse.ok) {
+      throw new Error(`API error: ${chartResponse.status} ${chartResponse.statusText} for symbol: ${symbol}`);
+    }
     const chartData = await chartResponse.json();
     
     if (chartData.chart?.result?.[0]) {
@@ -420,7 +453,16 @@ export async function refreshDailyData(symbol: string): Promise<boolean> {
     
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    await logRefreshAttempt(stockId, 'daily', 'failed', [], error.message, YAHOO_SUMMARY_API, responseTime);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await logRefreshAttempt(
+      stockId,
+      'daily',
+      'failed',
+      [],
+      errorMsg,
+      YAHOO_SUMMARY_API,
+      responseTime
+    );
     console.error(`Daily refresh failed for ${symbol}:`, error);
     return false;
   }
@@ -432,7 +474,7 @@ export async function refreshWeeklyData(symbol: string): Promise<boolean> {
   const stock = await db.select().from(stocks).where(eq(stocks.symbol, symbol)).limit(1);
   
   if (stock.length === 0) {
-    await logRefreshAttempt(0, 'weekly', 'failed', [], 'Stock not found in database');
+    await logRefreshAttempt(0, 'weekly', 'failed', [], `Stock not found in database for symbol: ${symbol}`);
     return false;
   }
   
@@ -444,6 +486,9 @@ export async function refreshWeeklyData(symbol: string): Promise<boolean> {
     
     // 1. Long business summary, Website, HQ Location, Full-time employees, CEO
     const profileResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=assetProfile`);
+    if (!profileResponse.ok) {
+      throw new Error(`API error: ${profileResponse.status} ${profileResponse.statusText} for symbol: ${symbol}`);
+    }
     const profileData = await profileResponse.json();
     
     if (profileData.quoteSummary?.result?.[0]?.assetProfile) {
@@ -477,6 +522,9 @@ export async function refreshWeeklyData(symbol: string): Promise<boolean> {
     
     // 2. ESG Scores
     const esgResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=esgScores`);
+    if (!esgResponse.ok) {
+      throw new Error(`API error: ${esgResponse.status} ${esgResponse.statusText} for symbol: ${symbol}`);
+    }
     const esgData = await esgResponse.json();
     
     if (esgData.quoteSummary?.result?.[0]?.esgScores) {
@@ -517,7 +565,16 @@ export async function refreshWeeklyData(symbol: string): Promise<boolean> {
     
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    await logRefreshAttempt(stockId, 'weekly', 'failed', [], error.message, YAHOO_SUMMARY_API, responseTime);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await logRefreshAttempt(
+      stockId,
+      'weekly',
+      'failed',
+      [],
+      errorMsg,
+      YAHOO_SUMMARY_API,
+      responseTime
+    );
     console.error(`Weekly refresh failed for ${symbol}:`, error);
     return false;
   }
@@ -529,7 +586,7 @@ export async function refreshQuarterlyData(symbol: string): Promise<boolean> {
   const stock = await db.select().from(stocks).where(eq(stocks.symbol, symbol)).limit(1);
   
   if (stock.length === 0) {
-    await logRefreshAttempt(0, 'quarterly', 'failed', [], 'Stock not found in database');
+    await logRefreshAttempt(0, 'quarterly', 'failed', [], `Stock not found in database for symbol: ${symbol}`);
     return false;
   }
   
@@ -538,6 +595,9 @@ export async function refreshQuarterlyData(symbol: string): Promise<boolean> {
   try {
     // 1. Earnings data
     const earningsResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=earnings,earningsHistory`);
+    if (!earningsResponse.ok) {
+      throw new Error(`API error: ${earningsResponse.status} ${earningsResponse.statusText} for symbol: ${symbol}`);
+    }
     const earningsData = await earningsResponse.json();
     
     if (earningsData.quoteSummary?.result?.[0]) {
@@ -565,6 +625,9 @@ export async function refreshQuarterlyData(symbol: string): Promise<boolean> {
     
     // 2. Financial statements
     const financialsResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=incomeStatementHistoryQuarterly,balanceSheetHistoryQuarterly,cashflowStatementHistoryQuarterly`);
+    if (!financialsResponse.ok) {
+      throw new Error(`API error: ${financialsResponse.status} ${financialsResponse.statusText} for symbol: ${symbol}`);
+    }
     const financialsData = await financialsResponse.json();
     
     if (financialsData.quoteSummary?.result?.[0]) {
@@ -615,6 +678,9 @@ export async function refreshQuarterlyData(symbol: string): Promise<boolean> {
     
     // 3. Institutional holders
     const holdersResponse = await fetch(`${YAHOO_SUMMARY_API}/${symbol}?modules=majorHoldersBreakdown`);
+    if (!holdersResponse.ok) {
+      throw new Error(`API error: ${holdersResponse.status} ${holdersResponse.statusText} for symbol: ${symbol}`);
+    }
     const holdersData = await holdersResponse.json();
     
     if (holdersData.quoteSummary?.result?.[0]?.majorHoldersBreakdown) {
@@ -629,9 +695,11 @@ export async function refreshQuarterlyData(symbol: string): Promise<boolean> {
           await db.insert(stockInstitutionalHolders).values({
             stockId,
             holderName: holder.organization || 'Unknown',
-            shares: holder.raw || null,
-            percentHeld: holder.raw ? (holder.raw / 100) : null,
-            value: holder.raw ? (holder.raw * (stock[0].currentPrice || 0)) : null,
+            shares: typeof holder.raw === 'number' ? holder.raw : undefined,
+            percentHeld: typeof holder.raw === 'number' ? (holder.raw / 100).toFixed(4) : undefined,
+            value: typeof holder.raw === 'number' && typeof stock[0].currentPrice === 'number'
+              ? holder.raw * stock[0].currentPrice
+              : undefined,
             reportDate: new Date(),
           });
         }
@@ -672,7 +740,16 @@ export async function refreshQuarterlyData(symbol: string): Promise<boolean> {
     
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    await logRefreshAttempt(stockId, 'quarterly', 'failed', [], error.message, YAHOO_SUMMARY_API, responseTime);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await logRefreshAttempt(
+      stockId,
+      'quarterly',
+      'failed',
+      [],
+      errorMsg,
+      YAHOO_SUMMARY_API,
+      responseTime
+    );
     console.error(`Quarterly refresh failed for ${symbol}:`, error);
     return false;
   }

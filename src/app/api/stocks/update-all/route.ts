@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
         marketStatus: 'closed',
         timestamp: new Date().toISOString()
       }, { status: 200 });
-    }
+  }
 
-    // Get all stocks from DB
+  // Get all stocks from DB
     const allStocks = await db.select({ symbol: stocks.symbol }).from(stocks);
     const symbols = allStocks.map(stock => stock.symbol);
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Refresh complete: ${results.successful.length} successful, ${results.failed.length} failed`);
 
-    return NextResponse.json({
+  return NextResponse.json({
       message: 'Comprehensive stock refresh complete',
       results,
       marketStatus: 'open',
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     console.error('Error in comprehensive stock refresh:', error);
     return NextResponse.json({ 
       error: 'Failed to refresh stocks',
-      details: error.message 
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 } 

@@ -66,7 +66,7 @@ interface PortfolioItem {
 
 interface PortfolioTableProps {
   refreshTrigger: number;
-  onDataUpdate?: (portfolio: PortfolioItem[], summary: { totalPortfolioValue: number; totalInvested: number; totalGainLoss: number; totalGainLossPercent: number; }) => void;
+  onDataUpdate?: (portfolio: PortfolioItem[], summary: { totalPortfolioValue: number; totalInvested: number; totalGainLoss: number; totalGainLossPercent: number; lastUpdated?: string; }) => void;
   onStockClick?: (stock: any) => void;
 }
 
@@ -160,11 +160,12 @@ export default function PortfolioTable({ refreshTrigger, onDataUpdate, onStockCl
         totalPortfolioValue,
         totalInvested,
         totalGainLoss,
-        totalGainLossPercent
+        totalGainLossPercent,
+        lastUpdated: lastUpdated ? lastUpdated.toISOString() : undefined // Ensure string or undefined
       };
       onDataUpdate(portfolio, summary);
     }
-  }, [portfolio, totalPortfolioValue, totalInvested, totalGainLoss, totalGainLossPercent]);
+  }, [portfolio, totalPortfolioValue, totalInvested, totalGainLoss, totalGainLossPercent, lastUpdated]);
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to remove this stock from your portfolio?')) {

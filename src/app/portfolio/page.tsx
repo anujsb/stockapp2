@@ -62,7 +62,8 @@ export default function PortfolioPage() {
     totalGainLoss: 0,
     totalGainLossPercent: 0
   });
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | undefined>(undefined);
+  const [tick, setTick] = useState(0); // Dummy state for re-render
 
   const handleStockAdded = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -109,9 +110,12 @@ export default function PortfolioPage() {
   type HandleDataUpdate = (portfolioData: PortfolioStock[], summary: { totalPortfolioValue: number; totalInvested: number; totalGainLoss: number; totalGainLossPercent: number; }) => void;
 
   const handleDataUpdate = useCallback(
-    (portfolioData: any[], summary: PortfolioSummary) => {
+    (portfolioData: any[], summary: PortfolioSummary & { lastUpdated?: string }) => {
       setPortfolio(mapPortfolioItemsToStocks(portfolioData));
       setPortfolioSummary(summary);
+      if (summary.lastUpdated) {
+        setLastUpdated(summary.lastUpdated);
+      }
     },
     []
   );
@@ -201,7 +205,7 @@ export default function PortfolioPage() {
     const updateAllStocks = async () => {
       try {
         await fetch('/api/stocks/update-all', { method: 'POST' });
-        setLastUpdated(new Date());
+        // Do not set lastUpdated here; let PortfolioTable handle it from backend data
       } catch (e) {
         // Silently ignore errors
       }
@@ -211,14 +215,13 @@ export default function PortfolioPage() {
     return () => clearInterval(interval);
   }, [portfolio.length]);
 
-  // Real-time ticking for the "Last updated" display
+  // Real-time ticking for the "Last updated" display (just to re-render)
   useEffect(() => {
     if (!lastUpdated) return;
-    const tick = setInterval(() => {
-      // Simply show current time as "last updated" for real-time display
-      setLastUpdated(new Date());
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
     }, 1000);
-    return () => clearInterval(tick);
+    return () => clearInterval(interval);
   }, [lastUpdated]);
 
   return (
@@ -260,7 +263,7 @@ export default function PortfolioPage() {
           <div className="mb-2 text-right text-sm text-gray-500">
             {lastUpdated && (
               <span>
-                Last updated: {formatLastUpdated(lastUpdated)}
+                Last updated: {formatLastUpdated(new Date(lastUpdated))}
               </span>
             )}
           </div>
