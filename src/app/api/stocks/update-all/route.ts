@@ -1,51 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { refreshMultipleStocks, isIndianMarketOpen } from '@/lib/stock-refresh-system';
 import { db } from '@/lib/db';
 import { stocks } from '@/lib/db/schema';
+import { fetchStockData } from '@/lib/stock-details-api';
+import { eq } from 'drizzle-orm';
+
+// Helper: Check if Indian market is open (NSE/BSE: 09:15 to 15:30 IST)
+function isIndianMarketOpen() {
+  const now = new Date();
+  // Convert to IST (UTC+5:30)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const ist = new Date(utc + istOffset);
+  const hours = ist.getHours();
+  const minutes = ist.getMinutes();
+  // Market open: 09:15 (9*60+15=555), close: 15:30 (15*60+30=930)
+  const mins = hours * 60 + minutes;
+  return mins >= 555 && mins <= 930 && ist.getDay() >= 1 && ist.getDay() <= 5; // Mon-Fri
+}
 
 export async function POST(request: NextRequest) {
-  try {
-    // Check if market is open for real-time updates
-    const marketOpen = isIndianMarketOpen();
-    
-    if (!marketOpen) {
-      return NextResponse.json({ 
-        message: 'Indian stock market is closed. No real-time updates performed.',
-        marketStatus: 'closed',
-        timestamp: new Date().toISOString()
-      }, { status: 200 });
-    }
-
-    // Get all stocks from DB
-    const allStocks = await db.select({ symbol: stocks.symbol }).from(stocks);
-    const symbols = allStocks.map(stock => stock.symbol);
-
-    if (symbols.length === 0) {
-      return NextResponse.json({ 
-        message: 'No stocks found in database',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    console.log(`🔄 Starting comprehensive refresh for ${symbols.length} stocks...`);
-
-    // Use the new refresh system for real-time data
-    const results = await refreshMultipleStocks(symbols, 'realtime');
-
-    console.log(`✅ Refresh complete: ${results.successful.length} successful, ${results.failed.length} failed`);
-
-    return NextResponse.json({
-      message: 'Comprehensive stock refresh complete',
-      results,
-      marketStatus: 'open',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error in comprehensive stock refresh:', error);
-    return NextResponse.json({ 
-      error: 'Failed to refresh stocks',
-      details: error.message 
-    }, { status: 500 });
+  if (!isIndianMarketOpen()) {
+    return NextResponse.json({ message: 'Indian stock market is closed. No updates performed.' }, { status: 200 });
   }
+
+  // Get all stocks from DB
+  const allStocks = await db.select().from(stocks);
+  const updated = [];
+  const failed = [];
+  const now = new Date();
+
+  for (const stock of allStocks) {
+    try {
+      const stockData = await fetchStockData(stock.symbol);
+      if (stockData && stockData.info) {
+        await db.update(stocks)
+          .set({
+            name: stockData.info.longName || stock.name,
+            currentPrice: stockData.info.currentPrice.toString(),
+            previousClose: stockData.info.regularMarketPreviousClose.toString(),
+            dayChange: stockData.info.regularMarketChange.toString(),
+            dayChangePercent: stockData.info.regularMarketChangePercent.toString(),
+            volume: stockData.info.regularMarketVolume || null,
+            high52Week: stockData.info.fiftyTwoWeekHigh?.toString() || null,
+            low52Week: stockData.info.fiftyTwoWeekLow?.toString() || null,
+            peRatio: stockData.info.trailingPE?.toString() || null,
+            dividendYield: stockData.info.dividendYield?.toString() || null,
+            sector: stockData.info.sector || stock.sector,
+            industry: stockData.info.industry || stock.industry,
+            marketCap: stockData.info.marketCap || stock.marketCap,
+            lastUpdated: now
+          })
+          .where(eq(stocks.id, stock.id));
+        updated.push(stock.symbol);
+      } else {
+        failed.push(stock.symbol);
+      }
+    } catch (err) {
+      failed.push(stock.symbol);
+    }
+  }
+
+  return NextResponse.json({
+    message: 'Stock update complete',
+    updated,
+    failed,
+    lastUpdated: now
+  });
 } 

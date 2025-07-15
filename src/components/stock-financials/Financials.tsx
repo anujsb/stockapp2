@@ -1,95 +1,64 @@
 'use client';
 
-import { BarChart2, DollarSign, TrendingUp, TrendingDown, PieChart, AlertCircle } from 'lucide-react';
+import { BarChart2, DollarSign, TrendingUp, TrendingDown, PieChart } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { 
-  formatCurrencyRobust,
-  formatPercentageRobust,
-  formatMarketCapRobust,
-  safeParseFloat,
-  safeParseString,
-  getStockOverviewRobust
-} from '@/lib/utils/robust-data-utils';
 
 interface FinancialsProps {
   stock: any;
 }
 
 export default function Financials({ stock }: FinancialsProps) {
-  // Use robust data handling
-  const stockOverview = getStockOverviewRobust(stock);
+  // Format market cap using DB value
+  const formatMarketCap = (marketCap: number | string | null | undefined) => {
+    const num = typeof marketCap === 'string' ? Number(marketCap) : marketCap;
+    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+    if (num >= 1e12) return `₹${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `₹${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `₹${(num / 1e6).toFixed(2)}M`;
+    return `₹${num.toFixed(0)}`;
+  };
 
-  // Enhanced financial data with robust handling
+  // Format number with 2 decimals if present
+  const formatNumber = (val: number | string | null | undefined, decimals = 2) => {
+    const num = typeof val === 'string' ? Number(val) : val;
+    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+    return num.toFixed(decimals);
+  };
+
+  // Format percent (e.g. dividend yield)
+  const formatPercent = (val: number | string | null | undefined, decimals = 2) => {
+    const num = typeof val === 'string' ? Number(val) : val;
+    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+    return num.toFixed(decimals) + '%';
+  };
+
+  // Use DB fields directly, fallback to 'N/A' if missing
   const financialData = {
-    // Basic info
-    sector: stockOverview.basic.sector,
-    industry: stockOverview.basic.industry,
-    
-    // Market data
-    marketCap: stockOverview.market.marketCap,
-    volume: stockOverview.market.volume,
-    
-    // Financial ratios
-    peRatio: stockOverview.financial.peRatio,
-    priceToBook: stockOverview.financial.priceToBook,
-    priceToSales: stockOverview.financial.priceToSales,
-    dividendYield: stockOverview.financial.dividendYield,
-    beta: stockOverview.financial.beta,
-    
-    // Technical data
-    high52Week: stockOverview.technical.high52Week,
-    low52Week: stockOverview.technical.low52Week,
-    
-    // Enhanced financial ratios from new schema
-    bookValue: formatCurrencyRobust(stock.bookValue),
-    debtToEquity: safeParseFloat(stock.debtToEquity, 0).toFixed(2),
-    currentRatio: safeParseFloat(stock.currentRatio, 0).toFixed(2),
-    quickRatio: safeParseFloat(stock.quickRatio, 0).toFixed(2),
-    returnOnEquity: formatPercentageRobust(stock.returnOnEquity),
-    returnOnAssets: formatPercentageRobust(stock.returnOnAssets),
-    
-    // Financial health metrics
-    revenueGrowth: formatPercentageRobust(stock.revenueGrowth),
-    grossMargin: formatPercentageRobust(stock.grossMargin),
-    operatingMargin: formatPercentageRobust(stock.operatingMargin),
-    netMargin: formatPercentageRobust(stock.netMargin),
-    
-    // Additional ratios
-    pegRatio: safeParseFloat(stock.pegRatio, 0).toFixed(2),
-    evToEbitda: safeParseFloat(stock.evToEbitda, 0).toFixed(2),
-    
-    // Institutional data
-    institutionalPercent: formatPercentageRobust(stock.institutionalPercent),
-    insiderPercent: formatPercentageRobust(stock.insiderPercent),
-    
-    // ESG scores
-    esgEnvironmentalScore: safeParseString(stock.esgEnvironmentalScore, 'N/A'),
-    esgSocialScore: safeParseString(stock.esgSocialScore, 'N/A'),
-    esgGovernanceScore: safeParseString(stock.esgGovernanceScore, 'N/A'),
-    
-    // Valuation metrics (enhanced)
+    sector: stock.sector || 'N/A',
+    industry: stock.industry || 'N/A',
+    marketCap: formatMarketCap(stock.marketCap),
+    peRatio: formatNumber(stock.peRatio),
+    bookValue: formatNumber(stock.bookValue),
+    pbRatio: formatNumber(stock.priceToBook),
+    dividendYield: formatPercent(stock.dividendYield),
+    high52Week: formatNumber(stock.high52Week),
+    low52Week: formatNumber(stock.low52Week),
+    debtToEquity: formatNumber(stock.debtToEquity),
+    // The following are not in DB schema, so always N/A
+    roe: 'N/A',
+    roce: 'N/A',
+    promoterHolding: 'N/A',
+    institutionalHolding: 'N/A',
+    insiderTrades: 'N/A',
     valuationMetrics: {
-      pegRatio: safeParseFloat(stock.pegRatio, 0).toFixed(2),
-      evEbitda: safeParseFloat(stock.evToEbitda, 0).toFixed(2),
-      dcf: 'N/A', // Not available from current APIs
-      priceToSales: stockOverview.financial.priceToSales,
-      priceToBook: stockOverview.financial.priceToBook
+      pegRatio: 'N/A',
+      evEbitda: 'N/A',
+      dcf: 'N/A'
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Data Availability Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
-          <span className="text-sm font-medium text-blue-800">Data Availability</span>
-        </div>
-        <p className="text-sm text-blue-700">
-          Financial data is sourced from multiple APIs. Some metrics may show 'N/A' if not available from the data providers.
-        </p>
-      </div>
-
       {/* Key Financial Metrics */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
@@ -103,45 +72,18 @@ export default function Financials({ stock }: FinancialsProps) {
             <Metric label="Sector" value={financialData.sector} />
             <Metric label="Industry" value={financialData.industry} />
             <Metric label="Market Cap" value={financialData.marketCap} />
-            <Metric label="Volume" value={financialData.volume} />
             <Metric label="P/E Ratio" value={financialData.peRatio} />
-            <Metric label="P/B Ratio" value={financialData.priceToBook} />
-            <Metric label="P/S Ratio" value={financialData.priceToSales} />
-            <Metric label="PEG Ratio" value={financialData.pegRatio} />
-            <Metric label="EV/EBITDA" value={financialData.evToEbitda} />
             <Metric label="Book Value" value={financialData.bookValue} />
+            <Metric label="P/B Ratio" value={financialData.pbRatio} />
             <Metric label="Dividend Yield" value={financialData.dividendYield} />
-            <Metric label="Beta" value={financialData.beta} />
             <Metric label="52-Week High" value={financialData.high52Week} />
             <Metric label="52-Week Low" value={financialData.low52Week} />
             <Metric label="Debt-to-Equity" value={financialData.debtToEquity} />
-            <Metric label="Current Ratio" value={financialData.currentRatio} />
-            <Metric label="Quick Ratio" value={financialData.quickRatio} />
-            <Metric label="ROE" value={financialData.returnOnEquity} />
-            <Metric label="ROA" value={financialData.returnOnAssets} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Financial Health Metrics */}
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-green-600" />
-            Financial Health Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Metric label="Revenue Growth" value={financialData.revenueGrowth} />
-            <Metric label="Gross Margin" value={financialData.grossMargin} />
-            <Metric label="Operating Margin" value={financialData.operatingMargin} />
-            <Metric label="Net Margin" value={financialData.netMargin} />
-            <Metric label="Institutional Holding" value={financialData.institutionalPercent} />
-            <Metric label="Insider Holding" value={financialData.insiderPercent} />
-            <Metric label="ESG Environmental" value={financialData.esgEnvironmentalScore} />
-            <Metric label="ESG Social" value={financialData.esgSocialScore} />
-            <Metric label="ESG Governance" value={financialData.esgGovernanceScore} />
+            <Metric label="ROE" value={financialData.roe} />
+            <Metric label="ROCE" value={financialData.roce} />
+            <Metric label="Promoter Holding" value={financialData.promoterHolding} />
+            <Metric label="Institutional Holding" value={financialData.institutionalHolding} />
+            <Metric label="Insider Trades" value={financialData.insiderTrades} />
           </div>
         </CardContent>
       </Card>
@@ -158,19 +100,17 @@ export default function Financials({ stock }: FinancialsProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Metric label="PEG Ratio" value={financialData.valuationMetrics.pegRatio} />
             <Metric label="EV/EBITDA" value={financialData.valuationMetrics.evEbitda} />
-            <Metric label="P/S Ratio" value={financialData.valuationMetrics.priceToSales} />
-            <Metric label="P/B Ratio" value={financialData.valuationMetrics.priceToBook} />
-            <Metric label="DCF Model" value={financialData.valuationMetrics.dcf} />
+            <Metric label="DCF / Dividend Model" value={financialData.valuationMetrics.dcf} />
           </div>
         </CardContent>
       </Card>
 
-      {/* Financial Statements - Enhanced with available data */}
+      {/* Financial Statements - Not available from Yahoo Finance quote API */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-indigo-600" />
-            Financial Statements Summary
+            Financial Statements
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -179,24 +119,24 @@ export default function Financials({ stock }: FinancialsProps) {
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Profit & Loss Metrics
+                Profit & Loss
               </h4>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-green-700">Revenue Growth</span>
-                  <span className="text-sm font-medium text-green-800">{financialData.revenueGrowth}</span>
+                  <span className="text-sm text-green-700">Revenue</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-green-700">Gross Margin</span>
-                  <span className="text-sm font-medium text-green-800">{financialData.grossMargin}</span>
+                  <span className="text-sm text-green-700">Gross Profit</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-green-700">Operating Margin</span>
-                  <span className="text-sm font-medium text-green-800">{financialData.operatingMargin}</span>
+                  <span className="text-sm text-green-700">Operating Income</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-green-700">Net Margin</span>
-                  <span className="text-sm font-medium text-green-800">{financialData.netMargin}</span>
+                  <span className="text-sm text-green-700">Net Income</span>
+                  <span className="text-sm font-medium text-green-800">N/A</span>
                 </div>
               </div>
             </div>
@@ -205,50 +145,50 @@ export default function Financials({ stock }: FinancialsProps) {
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                 <PieChart className="h-4 w-4" />
-                Balance Sheet Metrics
+                Balance Sheet
               </h4>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-blue-700">Book Value</span>
-                  <span className="text-sm font-medium text-blue-800">{financialData.bookValue}</span>
+                  <span className="text-sm text-blue-700">Total Assets</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-blue-700">Debt-to-Equity</span>
-                  <span className="text-sm font-medium text-blue-800">{financialData.debtToEquity}</span>
+                  <span className="text-sm text-blue-700">Total Liabilities</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-blue-700">Current Ratio</span>
-                  <span className="text-sm font-medium text-blue-800">{financialData.currentRatio}</span>
+                  <span className="text-sm text-blue-700">Shareholders' Equity</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-blue-700">Quick Ratio</span>
-                  <span className="text-sm font-medium text-blue-800">{financialData.quickRatio}</span>
+                  <span className="text-sm text-blue-700">Total Debt</span>
+                  <span className="text-sm font-medium text-blue-800">N/A</span>
                 </div>
               </div>
             </div>
 
-            {/* Returns & Performance */}
+            {/* Cash Flow */}
             <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
               <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
-                Returns & Performance
+                Cash Flow (TTM)
               </h4>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-purple-700">Return on Equity</span>
-                  <span className="text-sm font-medium text-purple-800">{financialData.returnOnEquity}</span>
+                  <span className="text-sm text-purple-700">Operating Cash Flow</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-purple-700">Return on Assets</span>
-                  <span className="text-sm font-medium text-purple-800">{financialData.returnOnAssets}</span>
+                  <span className="text-sm text-purple-700">Free Cash Flow</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-purple-700">Institutional Holding</span>
-                  <span className="text-sm font-medium text-purple-800">{financialData.institutionalPercent}</span>
+                  <span className="text-sm text-purple-700">Investing Cash Flow</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-purple-700">Insider Holding</span>
-                  <span className="text-sm font-medium text-purple-800">{financialData.insiderPercent}</span>
+                  <span className="text-sm text-purple-700">Financing Cash Flow</span>
+                  <span className="text-sm font-medium text-purple-800">N/A</span>
                 </div>
               </div>
             </div>
@@ -266,9 +206,9 @@ interface MetricProps {
 
 function Metric({ label, value }: MetricProps) {
   return (
-    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className="text-sm font-medium text-gray-900">{value}</span>
+    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <p className="text-sm font-medium text-gray-600 mb-1">{label}</p>
+      <p className="text-lg font-bold text-gray-900">{value}</p>
     </div>
   );
 }

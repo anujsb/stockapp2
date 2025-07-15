@@ -6,13 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "migrate": "tsx scripts/migrate-stock-schema.ts",
-    "test-refresh": "tsx scripts/test-refresh-system.ts",
-    "refresh:realtime": "curl -X POST http://localhost:3000/api/cron/refresh-scheduler -H 'Authorization: Bearer your-cron-secret' -H 'Content-Type: application/json' -d '{\"schedule\": \"realtime\"}'",
-    "refresh:daily": "curl -X POST http://localhost:3000/api/cron/refresh-scheduler -H 'Authorization: Bearer your-cron-secret' -H 'Content-Type: application/json' -d '{\"schedule\": \"daily\"}'",
-    "refresh:weekly": "curl -X POST http://localhost:3000/api/cron/refresh-scheduler -H 'Authorization: Bearer your-cron-secret' -H 'Content-Type: application/json' -d '{\"schedule\": \"weekly\"}'",
-    "refresh:quarterly": "curl -X POST http://localhost:3000/api/cron/refresh-scheduler -H 'Authorization: Bearer your-cron-secret' -H 'Content-Type: application/json' -d '{\"schedule\": \"quarterly\"}'"
+    "lint": "next lint"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.23.0",

@@ -16,7 +16,6 @@ import Financials from '@/components/stock-financials/Financials';
 import Technicals from '@/components/stock-technicals/Technicals';
 import NewsAndActions from '@/components/stock-news-actions/NewsAndActions';
 import { calculateGainLoss, formatCurrency } from '@/lib/utils/portfolio-utils';
-import { formatLastUpdated } from '@/lib/utils/time-utils';
 
 interface PortfolioStock {
   id: number;
@@ -214,10 +213,7 @@ export default function PortfolioPage() {
   // Real-time ticking for the "Last updated" display
   useEffect(() => {
     if (!lastUpdated) return;
-    const tick = setInterval(() => {
-      // Simply show current time as "last updated" for real-time display
-      setLastUpdated(new Date());
-    }, 1000);
+    const tick = setInterval(() => setLastUpdated(new Date(lastUpdated)), 1000);
     return () => clearInterval(tick);
   }, [lastUpdated]);
 
@@ -260,7 +256,7 @@ export default function PortfolioPage() {
           <div className="mb-2 text-right text-sm text-gray-500">
             {lastUpdated && (
               <span>
-                Last updated: {formatLastUpdated(lastUpdated)}
+                Last updated: {lastUpdated.toLocaleTimeString()} ({lastUpdated.toLocaleDateString()})
               </span>
             )}
           </div>
