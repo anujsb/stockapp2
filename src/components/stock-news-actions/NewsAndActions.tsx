@@ -36,17 +36,14 @@ export default function NewsAndActions({ stock }: NewsAndActionsProps) {
     average: 'N/A'
   };
 
-  // Corporate actions - not available from Yahoo Finance
-  const corporateActions = [
-    {
-      type: "No corporate actions available",
-      date: "N/A",
-      amount: "N/A",
-      status: "N/A",
-      description: "Corporate action data not available from Yahoo Finance",
-      ratio: "N/A"
-    }
-  ];
+  // Corporate actions from Yahoo Finance
+  const corporateActions = stock?.corporateActions || {};
+  const formatDate = (timestamp: number | null | undefined) => {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString();
+  };
+  const hasCorporateActions = corporateActions.exDividendDate || corporateActions.dividendDate || corporateActions.splitDate || (corporateActions.earnings && (corporateActions.earnings.earningsDate || corporateActions.earnings.earningsDateTime));
 
   // Function to score news relevance
   const scoreNewsRelevance = (article: any, stockName: string, stockSymbol: string) => {
@@ -340,29 +337,47 @@ export default function NewsAndActions({ stock }: NewsAndActionsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {corporateActions.map((action, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-gray-900">{action.type}</h4>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getActionStatusColor(action.status)}`}>
-                        {action.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{action.description}</p>
-                    <p className="text-xs text-gray-500">Date: {action.date}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-purple-600">
-                      {action.amount || action.ratio}
-                    </p>
+          {hasCorporateActions ? (
+            <div className="space-y-4">
+              {corporateActions.exDividendDate && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Ex-Dividend Date</span>
+                    <span>{formatDate(corporateActions.exDividendDate)}</span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+              {corporateActions.dividendDate && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Dividend Date</span>
+                    <span>{formatDate(corporateActions.dividendDate)}</span>
+                  </div>
+                </div>
+              )}
+              {corporateActions.splitDate && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Split Date</span>
+                    <span>{formatDate(corporateActions.splitDate)}</span>
+                  </div>
+                </div>
+              )}
+              {corporateActions.earnings && corporateActions.earnings.earningsDate && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Earnings Date</span>
+                    <span>{Array.isArray(corporateActions.earnings.earningsDate)
+                      ? corporateActions.earnings.earningsDate.map((ed: any, i: number) => formatDate(ed.raw)).join(', ')
+                      : formatDate(corporateActions.earnings.earningsDate.raw)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-gray-500">No recent corporate actions.</div>
+          )}
         </CardContent>
       </Card>
     </div>

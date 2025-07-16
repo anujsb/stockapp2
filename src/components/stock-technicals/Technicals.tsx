@@ -133,7 +133,7 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
       ema50: typeof stock.technicalIndicators?.ema50 === 'number' ? stock.technicalIndicators.ema50 : 'N/A'
     },
     bollingerBands: calculateBollingerBands(stock.currentPrice, stock.historicalData),
-    volume: calculateVolumeMetrics(stock.volume, stock.historicalData),
+    volume: typeof stock.volume === 'number' ? stock.volume : (typeof stock.volume === 'string' ? Number(stock.volume) : 'N/A'),
     supportResistance: {
       resistance1: stock.fiftyTwoWeekHigh ? stock.fiftyTwoWeekHigh * 0.95 : stock.currentPrice * 1.08,
       resistance2: stock.fiftyTwoWeekHigh || stock.currentPrice * 1.15,
@@ -206,6 +206,12 @@ export default function Technicals({ stock, formatCurrency }: TechnicalsProps) {
               <p className="text-sm font-medium mb-1 text-indigo-700">Beta</p>
               <p className="text-xl font-bold text-indigo-700">{typeof technicalData.beta === 'number' ? technicalData.beta.toFixed(2) : technicalData.beta}</p>
               <p className="text-xs text-indigo-600">vs Market</p>
+            </div>
+            
+            <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm font-medium mb-1 text-yellow-700">Volume</p>
+              <p className="text-xl font-bold text-yellow-700">{typeof technicalData.volume === 'number' ? technicalData.volume.toLocaleString() : technicalData.volume}</p>
+              <p className="text-xs text-yellow-600">Shares</p>
             </div>
             
             <div className={`text-center p-4 rounded-lg border ${getMomentumColor(technicalData.momentum)}`}>

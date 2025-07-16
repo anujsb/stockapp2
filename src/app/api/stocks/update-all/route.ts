@@ -3,6 +3,9 @@ import { db } from '@/lib/db';
 import { stocks } from '@/lib/db/schema';
 import { fetchStockData } from '@/lib/stock-details-api';
 import { eq } from 'drizzle-orm';
+import { stockUpdateLogs } from '@/lib/db/schema';
+import { stockCorporateActions } from '@/lib/db/schema';
+import { fetchCorporateActions } from '@/lib/stock-details-api';
 
 // Helper: Check if Indian market is open (NSE/BSE: 09:15 to 15:30 IST)
 function isIndianMarketOpen() {
@@ -18,10 +21,30 @@ function isIndianMarketOpen() {
   return mins >= 555 && mins <= 930 && ist.getDay() >= 1 && ist.getDay() <= 5; // Mon-Fri
 }
 
+// In-memory throttle: track last update time
+let lastGlobalUpdate: number | null = null;
+const THROTTLE_MS = 60 * 1000; // 1 minute
+
 export async function POST(request: NextRequest) {
+  const nowMs = Date.now();
+  const endpoint = '/api/stocks/update-all';
+  if (lastGlobalUpdate && nowMs - lastGlobalUpdate < THROTTLE_MS) {
+    await db.insert(stockUpdateLogs).values({
+      endpoint,
+      status: 'throttled',
+      message: 'Update throttled: Please wait before updating again.'
+    });
+    return NextResponse.json({ message: 'Update throttled: Please wait before updating again.' }, { status: 429 });
+  }
   if (!isIndianMarketOpen()) {
+    await db.insert(stockUpdateLogs).values({
+      endpoint,
+      status: 'throttled',
+      message: 'Indian stock market is closed. No updates performed.'
+    });
     return NextResponse.json({ message: 'Indian stock market is closed. No updates performed.' }, { status: 200 });
   }
+  lastGlobalUpdate = nowMs;
 
   // Get all stocks from DB
   const allStocks = await db.select().from(stocks);
@@ -48,9 +71,33 @@ export async function POST(request: NextRequest) {
             sector: stockData.info.sector || stock.sector,
             industry: stockData.info.industry || stock.industry,
             marketCap: stockData.info.marketCap || stock.marketCap,
-            lastUpdated: now
+            lastUpdated: now,
+            lastRefreshed: now
           })
           .where(eq(stocks.id, stock.id));
+        // Fetch and upsert corporate actions
+        try {
+          const ca = await fetchCorporateActions(stock.symbol);
+          await db.insert(stockCorporateActions).values({
+            stockId: stock.id,
+            exDividendDate: ca.exDividendDate || null,
+            dividendDate: ca.dividendDate || null,
+            splitDate: ca.splitDate || null,
+            earnings: ca.earnings ? JSON.stringify(ca.earnings) : null,
+            updatedAt: new Date(),
+          }).onConflictDoUpdate({
+            target: [stockCorporateActions.stockId],
+            set: {
+              exDividendDate: ca.exDividendDate || null,
+              dividendDate: ca.dividendDate || null,
+              splitDate: ca.splitDate || null,
+              earnings: ca.earnings ? JSON.stringify(ca.earnings) : null,
+              updatedAt: new Date(),
+            }
+          });
+        } catch (caErr) {
+          // Optionally log error but don't fail the stock update
+        }
         updated.push(stock.symbol);
       } else {
         failed.push(stock.symbol);
@@ -59,6 +106,12 @@ export async function POST(request: NextRequest) {
       failed.push(stock.symbol);
     }
   }
+
+  await db.insert(stockUpdateLogs).values({
+    endpoint,
+    status: failed.length === 0 ? 'success' : 'fail',
+    message: `Updated: ${updated.join(', ')}; Failed: ${failed.join(', ')}`
+  });
 
   return NextResponse.json({
     message: 'Stock update complete',

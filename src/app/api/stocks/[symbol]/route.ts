@@ -1,10 +1,11 @@
 // src/app/api/stocks/[symbol]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stocks } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { stockCorporateActions, stocks } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 import { fetchStockData } from '@/lib/stock-details-api';
 import { cleanSymbol, extractExchangeFromSymbol } from '@/lib/trading-view-utils';
+import { fetchCorporateActions } from '@/lib/stock-details-api';
 
 // Fixed interface - should match Next.js 15 expectations
 interface RouteContext {
@@ -77,7 +78,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
             currentRatio: stockData.info.currentRatio,
             debtToEquity: stockData.info.debtToEquity,
             beta: stockData.info.beta
-          }
+          },
+          corporateActions: await fetchCorporateActions(symbol)
         });
       }
 
@@ -98,7 +100,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
             currentRatio: stockData.info.currentRatio,
             debtToEquity: stockData.info.debtToEquity,
             beta: stockData.info.beta
-          }
+          },
+          corporateActions: await fetchCorporateActions(symbol)
         });
       } catch (dbError) {
         console.error(`Database insert error for ${symbol}:`, dbError);
@@ -109,7 +112,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
           createdAt: new Date(),
           lastUpdated: new Date(),
           technicalIndicators: stockData.technicalIndicators,
-          historicalData: stockData.historicalData.slice(-30)
+          historicalData: stockData.historicalData.slice(-30),
+          corporateActions: await fetchCorporateActions(symbol)
         });
       }
     } else {
@@ -160,7 +164,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
               currentRatio: stockData.info.currentRatio,
               debtToEquity: stockData.info.debtToEquity,
               beta: stockData.info.beta
-            }
+            },
+            corporateActions: await fetchCorporateActions(symbol)
           });
         } catch (dbError) {
           console.error(`Database update error for ${symbol}:`, dbError);
@@ -168,7 +173,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
           return NextResponse.json({
             ...stock[0],
             technicalIndicators: stockData.technicalIndicators,
-            historicalData: stockData.historicalData.slice(-30)
+            historicalData: stockData.historicalData.slice(-30),
+            corporateActions: await fetchCorporateActions(symbol)
           });
         }
       } else {

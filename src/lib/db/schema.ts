@@ -34,6 +34,7 @@ export const stocks = pgTable("stocks", {
   currency: varchar("currency", { length: 3 }).default("USD"),
   lastUpdated: timestamp("last_updated").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
+  lastRefreshed: timestamp("last_refreshed").defaultNow(),
 });
 
 // USER PORTFOLIO
@@ -113,4 +114,25 @@ export const portfolioUploads = pgTable("portfolio_uploads", {
   successfulImports: integer("successful_imports"),
   failedImports: integer("failed_imports"),
   uploadDate: timestamp("upload_date").defaultNow(),
+});
+
+// STOCK UPDATE LOGS
+export const stockUpdateLogs = pgTable("stock_update_logs", {
+  id: serial("id").primaryKey(),
+  endpoint: varchar("endpoint", { length: 100 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // success, fail, throttled
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// STOCK CORPORATE ACTIONS
+export const stockCorporateActions = pgTable("stock_corporate_actions", {
+  id: serial("id").primaryKey(),
+  stockId: integer("stock_id").notNull().references(() => stocks.id, { onDelete: "cascade" }),
+  exDividendDate: bigint("ex_dividend_date", { mode: "number" }), // store as unix timestamp
+  dividendDate: bigint("dividend_date", { mode: "number" }), // store as unix timestamp
+  splitDate: bigint("split_date", { mode: "number" }), // store as unix timestamp
+  earnings: text("earnings"), // store as JSON string
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });

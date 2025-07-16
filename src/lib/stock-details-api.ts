@@ -364,6 +364,28 @@ export const fetchStockData = async (symbol: string): Promise<StockData | null> 
   }
 };
 
+/**
+ * Fetches corporate actions (splits, dividends, earnings dates) from Yahoo Finance
+ * @param symbol Stock symbol (e.g., RELIANCE.NS)
+ * @returns Object with exDividendDate, dividendDate, splitDate, earnings, etc.
+ */
+export async function fetchCorporateActions(symbol: string) {
+  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=calendarEvents`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Yahoo Finance corporate actions API error: ${response.status}`);
+  }
+  const data = await response.json();
+  const events = data?.quoteSummary?.result?.[0]?.calendarEvents || {};
+  return {
+    exDividendDate: events.exDividendDate?.raw || null,
+    dividendDate: events.dividendDate?.raw || null,
+    splitDate: events.splitDate?.raw || null,
+    earnings: events.earnings || null,
+    // Add more fields as needed
+  };
+}
+
 const fetchYahooQuoteData = async (symbol: string): Promise<FundamentalData> => {
   try {
     const quoteUrl = `${YAHOO_QUOTE_API}?symbols=${symbol}`;

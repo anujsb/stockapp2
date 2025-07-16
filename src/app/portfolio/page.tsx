@@ -202,7 +202,6 @@ export default function PortfolioPage() {
         await fetch('/api/stocks/update-all', { method: 'POST' });
         setLastUpdated(new Date());
       } catch (e) {
-        // Silently ignore errors
       }
     };
     updateAllStocks(); // On mount if portfolio is not empty

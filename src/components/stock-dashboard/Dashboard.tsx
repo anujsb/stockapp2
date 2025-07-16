@@ -41,6 +41,8 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
     dividendYield: stock.dividendYield && !isNaN(Number(stock.dividendYield)) ? (Number(stock.dividendYield) * 100).toFixed(2) + '%' : 'N/A',
     high52Week: stock.fiftyTwoWeekHigh && !isNaN(Number(stock.fiftyTwoWeekHigh)) ? formatCurrency(Number(stock.fiftyTwoWeekHigh)) : 'N/A',
     low52Week: stock.fiftyTwoWeekLow && !isNaN(Number(stock.fiftyTwoWeekLow)) ? formatCurrency(Number(stock.fiftyTwoWeekLow)) : 'N/A',
+    previousClose: stock.previousClose && !isNaN(Number(stock.previousClose)) ? formatCurrency(Number(stock.previousClose)) : 'N/A',
+    currency: stock.currency || 'N/A',
     description: stock.description || 'No description available'
   };
 
@@ -148,6 +150,14 @@ export default function Dashboard({ stock, formatCurrency, calculateGainLoss }: 
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Dividend Yield</span>
                   <span className="text-sm font-medium">{stockOverview.dividendYield}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Currency</span>
+                  <span className="text-sm font-medium">{stockOverview.currency}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Previous Close</span>
+                  <span className="text-sm font-medium">{stockOverview.previousClose}</span>
                 </div>
               </div>
             </div>

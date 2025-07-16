@@ -44,7 +44,7 @@ export default function Financials({ stock }: FinancialsProps) {
     high52Week: formatNumber(stock.high52Week),
     low52Week: formatNumber(stock.low52Week),
     debtToEquity: formatNumber(stock.debtToEquity),
-    // The following are not in DB schema, so always N/A
+    // Removed currency and previousClose from here
     roe: 'N/A',
     roce: 'N/A',
     promoterHolding: 'N/A',
