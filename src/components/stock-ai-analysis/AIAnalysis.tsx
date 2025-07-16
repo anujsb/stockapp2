@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart2, ArrowUp, Activity, Shield, RefreshCw, Info } from 'lucide-react';
+import { BarChart2, ArrowUp, Activity, Shield, RefreshCw, Info, CheckCircle, AlertTriangle, TrendingUp, Target } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 interface AIAnalysisProps {
@@ -146,6 +146,11 @@ export default function AIAnalysis({ stock }: AIAnalysisProps) {
   const prediction = analysis?.prediction || '';
   const explanation = analysis?.explanation || '';
 
+  const strengths = analysis?.strengths || '';
+  const weaknesses = analysis?.weaknesses || '';
+  const confidence = analysis?.confidence || '';
+  const nextSteps = analysis?.nextSteps || '';
+
   // Only show extra fields if there are any besides the standard ones
   const extraFields = analysis && typeof analysis === 'object'
     ? Object.entries(analysis).filter(([k]) => !['sentiment','recommendation','riskScore','volatility','prediction','explanation'].includes(k))
@@ -266,6 +271,58 @@ export default function AIAnalysis({ stock }: AIAnalysisProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Strengths */}
+          {strengths && (
+            <Card className="shadow-md border border-green-200">
+              <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CardTitle className="text-lg font-bold">Strengths</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-green-800 text-sm">{strengths}</div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Weaknesses */}
+          {weaknesses && (
+            <Card className="shadow-md border border-yellow-200">
+              <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                <CardTitle className="text-lg font-bold">Weaknesses / Risks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-yellow-800 text-sm">{weaknesses}</div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Confidence */}
+          {confidence && (
+            <Card className="shadow-md border border-blue-200">
+              <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+                <CardTitle className="text-lg font-bold">AI Confidence</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-blue-800 text-sm">{confidence}</div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Next Steps */}
+          {nextSteps && (
+            <Card className="shadow-md border border-purple-200">
+              <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                <Target className="h-5 w-5 text-purple-600" />
+                <CardTitle className="text-lg font-bold">Next Steps</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-purple-800 text-sm">{nextSteps}</div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Extra fields if present */}
           {extraFields.length > 0 && (

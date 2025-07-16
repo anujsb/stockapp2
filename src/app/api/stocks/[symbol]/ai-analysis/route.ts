@@ -10,8 +10,20 @@ export async function POST(request: NextRequest) {
 
   try {
     const { symbol, name, sector, industry, description, currentPrice, peRatio, marketCap, otherData } = await request.json();
-    // Compose a strict prompt for Gemini
-    const prompt = `You are a financial AI assistant. Analyze the following stock and provide a summary in this exact JSON format (no code block, no explanation outside JSON):\n\n{\n  "sentiment": "...",\n  "recommendation": "...",\n  "riskScore": ...,\n  "volatility": "...",\n  "prediction": "...",\n  "explanation": "..."\n}\n\nStock Symbol: ${symbol}\nName: ${name}\nSector: ${sector}\nIndustry: ${industry}\nCurrent Price: ${currentPrice}\nP/E Ratio: ${peRatio}\nMarket Cap: ${marketCap}\nDescription: ${description}\nOther Data: ${JSON.stringify(otherData)}\n\nRespond ONLY with the JSON object.`;
+    // Extract recent price change and technical summary if available
+    let recentChange = '';
+    let technicalSummary = '';
+    if (otherData) {
+      if (typeof otherData.regularMarketChangePercent === 'number') {
+        recentChange = `${otherData.regularMarketChangePercent.toFixed(2)}%`;
+      }
+      if (otherData.technicalIndicators) {
+        const t = otherData.technicalIndicators;
+        technicalSummary = `SMA20: ${t.sma20}, SMA50: ${t.sma50}, RSI: ${t.rsi}, MACD: line ${t.macd?.line}, signal ${t.macd?.signal}`;
+      }
+    }
+    // Compose a richer prompt for Gemini
+    const prompt = `You are a financial AI assistant. Analyze the following stock and provide a summary in this exact JSON format (no code block, no explanation outside JSON):\n\n{\n  "sentiment": "...",\n  "recommendation": "...",\n  "riskScore": ...,\n  "volatility": "...",\n  "prediction": "...",\n  "explanation": "...",\n  "strengths": "...",\n  "weaknesses": "...",\n  "confidence": "...",\n  "nextSteps": "..."\n}\n\nStock Symbol: ${symbol}\nName: ${name}\nSector: ${sector}\nIndustry: ${industry}\nCurrent Price: ${currentPrice}\nP/E Ratio: ${peRatio}\nMarket Cap: ${marketCap}\nDescription: ${description}\nRecent Price Change: ${recentChange}\nTechnical Indicators: ${technicalSummary}\n\nRespond ONLY with the JSON object.`;
 
     const geminiRes = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
