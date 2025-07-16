@@ -263,7 +263,7 @@ export default function Dashboard() {
                             ) : (
                               <TrendingDown className="w-3 h-3 mr-1" />
                             )}
-                            {item.pnlPercent.toFixed(2)}%
+                            {typeof item.pnlPercent === "number" ? item.pnlPercent.toFixed(2) : "-"}%
                           </div>
                         </div>
                       </div>
@@ -307,7 +307,7 @@ export default function Dashboard() {
                           ) : (
                             <TrendingDown className="w-3 h-3 mr-1" />
                           )}
-                          {stock.day_change_percent.toFixed(2)}%
+                          {typeof stock.day_change_percent === "number" ? stock.day_change_percent.toFixed(2) : "-"}%
                         </div>
                       </div>
                     </div>
