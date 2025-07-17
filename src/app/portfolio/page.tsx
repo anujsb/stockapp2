@@ -29,18 +29,55 @@ interface PortfolioStock {
   [key: string]: any;
 }
 
+// Utility to map snake_case DB fields to camelCase for stock objects
+function mapStockFromDb(stock: any) {
+  return {
+    ...stock,
+    currentPrice: stock.current_price ?? stock.currentPrice,
+    previousClose: stock.previous_close ?? stock.previousClose,
+    dayChange: stock.day_change ?? stock.dayChange,
+    dayChangePercent: stock.day_change_percent ?? stock.dayChangePercent,
+    marketCap: stock.market_cap ?? stock.marketCap,
+    high52Week: stock.high_52_week ?? stock.high52Week,
+    low52Week: stock.low_52_week ?? stock.low52Week,
+    peRatio: stock.pe_ratio ?? stock.peRatio,
+    dividendYield: stock.dividend_yield ?? stock.dividendYield,
+    lastUpdated: stock.last_updated ?? stock.lastUpdated,
+    createdAt: stock.created_at ?? stock.createdAt,
+    lastRefreshed: stock.last_refreshed ?? stock.lastRefreshed,
+    avgPurchasePrice: stock.avg_purchase_price ?? stock.avgPurchasePrice,
+    volume: stock.volume ?? stock.volume,
+    // Add more mappings as needed
+  };
+}
+
 function mapPortfolioItemsToStocks(items: any[]): PortfolioStock[] {
-  return items.map((item) => ({
-    id: item.id,
-    symbol: item.stock.symbol,
-    name: item.stock.name,
-    sector: item.stock.sector,
-    industry: item.stock.industry,
-    currentPrice: item.stock.current_price,
-    avgPurchasePrice: item.avg_purchase_price,
-    quantity: item.quantity,
-    // add other fields as needed
-  }));
+  return items.map((item) => {
+    const mappedStock = mapStockFromDb(item.stock);
+    return {
+      id: item.id,
+      symbol: mappedStock.symbol,
+      name: mappedStock.name,
+      sector: mappedStock.sector,
+      industry: mappedStock.industry,
+      currentPrice: mappedStock.currentPrice,
+      avgPurchasePrice: item.avg_purchase_price ?? item.avgPurchasePrice,
+      quantity: item.quantity,
+      dayChange: mappedStock.dayChange,
+      dayChangePercent: mappedStock.dayChangePercent,
+      exchange: mappedStock.exchange,
+      marketCap: mappedStock.marketCap,
+      peRatio: mappedStock.peRatio,
+      dividendYield: mappedStock.dividendYield,
+      high52Week: mappedStock.high52Week,
+      low52Week: mappedStock.low52Week,
+      volume: mappedStock.volume,
+      lastUpdated: mappedStock.lastUpdated,
+      createdAt: mappedStock.createdAt,
+      lastRefreshed: mappedStock.lastRefreshed,
+      // Add more as needed
+    };
+  });
 }
 
 interface RecommendationColorMap {
@@ -118,56 +155,53 @@ export default function PortfolioPage() {
 
   const handleStockClick = (stock: Stock) => {
     // Map all Yahoo Finance data fields to the stock object
+    const mappedStock = mapStockFromDb(stock);
     const enrichedStock = {
-      id: stock.id,
-      symbol: stock.symbol,
-      name: stock.name,
-      sector: stock.sector,
-      industry: stock.industry,
-      currentPrice: stock.currentPrice,
-      avgPurchasePrice: stock.avgPurchasePrice,
-      quantity: stock.quantity,
-      dayChange: stock.dayChange,
-      dayChangePercent: stock.dayChangePercent,
-      exchange: stock.exchange,
-      // Yahoo Finance data fields
-      longName: stock.name,
-      regularMarketPrice: stock.currentPrice,
-      regularMarketChange: stock.dayChange,
-      regularMarketChangePercent: stock.dayChangePercent,
-      regularMarketPreviousClose: stock.currentPrice - stock.dayChange,
-      regularMarketDayHigh: stock.currentPrice * 1.02, // Estimate
-      regularMarketDayLow: stock.currentPrice * 0.98, // Estimate
-      regularMarketVolume: stock.volume || 0,
-      marketCap: stock.marketCap || 0,
-      trailingPE: stock.pe || 0,
-      priceToBook: stock.priceToBook || 0,
-      dividendYield: stock.dividend || 0,
-      returnOnEquity: stock.roe || 0,
-      currentRatio: stock.currentRatio || 0,
-      debtToEquity: stock.debtToEquity || 0,
-      trailingEps: stock.eps || 0,
-      beta: stock.beta || 1.0,
-      description: stock.description || '',
-      // Use DB fields for 52-week high/low, fallback to Yahoo fields if present
-      high52Week: stock.high52Week ?? stock.fiftyTwoWeekHigh ?? (stock.currentPrice ? stock.currentPrice * 1.15 : undefined),
-      low52Week: stock.low52Week ?? stock.fiftyTwoWeekLow ?? (stock.currentPrice ? stock.currentPrice * 0.85 : undefined),
-      currency: stock.currency || 'INR',
-      volume: stock.volume || 0,
-      bookValue: stock.bookValue || 0,
-      pegRatio: stock.pegRatio || 0,
-      enterpriseToEbitda: stock.enterpriseToEbitda || 0,
-      // Technical indicators (if available)
-      technicalIndicators: stock.technicalIndicators || {
-        sma20: stock.currentPrice * 0.98,
-        sma50: stock.currentPrice * 0.95,
+      id: mappedStock.id,
+      symbol: mappedStock.symbol,
+      name: mappedStock.name,
+      sector: mappedStock.sector,
+      industry: mappedStock.industry,
+      currentPrice: mappedStock.currentPrice,
+      avgPurchasePrice: mappedStock.avgPurchasePrice,
+      quantity: mappedStock.quantity,
+      dayChange: mappedStock.dayChange,
+      dayChangePercent: mappedStock.dayChangePercent,
+      exchange: mappedStock.exchange,
+      longName: mappedStock.name,
+      regularMarketPrice: mappedStock.currentPrice,
+      regularMarketChange: mappedStock.dayChange,
+      regularMarketChangePercent: mappedStock.dayChangePercent,
+      regularMarketPreviousClose: mappedStock.currentPrice - mappedStock.dayChange,
+      regularMarketDayHigh: mappedStock.currentPrice * 1.02, // Estimate
+      regularMarketDayLow: mappedStock.currentPrice * 0.98, // Estimate
+      regularMarketVolume: mappedStock.volume || 0,
+      marketCap: mappedStock.marketCap || 0,
+      trailingPE: mappedStock.pe || mappedStock.peRatio || 0,
+      priceToBook: mappedStock.priceToBook || 0,
+      dividendYield: mappedStock.dividendYield || 0,
+      returnOnEquity: mappedStock.roe || 0,
+      currentRatio: mappedStock.currentRatio || 0,
+      debtToEquity: mappedStock.debtToEquity || 0,
+      trailingEps: mappedStock.eps || 0,
+      beta: mappedStock.beta || 1.0,
+      description: mappedStock.description || '',
+      high52Week: mappedStock.high52Week ?? mappedStock.fiftyTwoWeekHigh ?? (mappedStock.currentPrice ? mappedStock.currentPrice * 1.15 : undefined),
+      low52Week: mappedStock.low52Week ?? mappedStock.fiftyTwoWeekLow ?? (mappedStock.currentPrice ? mappedStock.currentPrice * 0.85 : undefined),
+      currency: mappedStock.currency || 'INR',
+      volume: mappedStock.volume || 0,
+      bookValue: mappedStock.bookValue || 0,
+      pegRatio: mappedStock.pegRatio || 0,
+      enterpriseToEbitda: mappedStock.enterpriseToEbitda || 0,
+      technicalIndicators: mappedStock.technicalIndicators || {
+        sma20: mappedStock.currentPrice * 0.98,
+        sma50: mappedStock.currentPrice * 0.95,
         rsi: 64.2,
         macd: { line: 2.45, signal: 2.1, histogram: 0.35 }
       },
-      // Historical data (if available)
-      historicalData: stock.historicalData || []
+      historicalData: mappedStock.historicalData || [],
+      peRatio: mappedStock.peRatio || mappedStock.pe || 0,
     };
-    
     setSelectedStock(enrichedStock);
   };
 
